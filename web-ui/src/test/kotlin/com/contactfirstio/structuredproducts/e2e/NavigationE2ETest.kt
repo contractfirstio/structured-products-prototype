@@ -10,13 +10,14 @@ import org.junit.jupiter.params.provider.CsvSource
 class NavigationE2ETest : BaseE2ETest() {
 
     @Test
-    fun homePageShowsHeroAndFeatureCards() {
+    fun homePageShowsHeroAndAllFeatureCards() {
         withPage("/") { page ->
             assertThat(page.getByText("Structured products management")).isVisible()
-            assertThat(page.locator(".feature-card").filter(com.microsoft.playwright.Locator.FilterOptions().setHasText("Define Product Types"))).isVisible()
-            assertThat(page.locator(".feature-card").filter(com.microsoft.playwright.Locator.FilterOptions().setHasText("Create Products"))).isVisible()
-            assertThat(page.locator(".feature-card").filter(com.microsoft.playwright.Locator.FilterOptions().setHasText("Execute Orders"))).isVisible()
-            assertThat(page.locator(".feature-card").filter(com.microsoft.playwright.Locator.FilterOptions().setHasText("Data Blotter"))).isVisible()
+            assertThat(page.featureCard("Define Leg Schemas")).isVisible()
+            assertThat(page.featureCard("Define Product Types")).isVisible()
+            assertThat(page.featureCard("Create Products")).isVisible()
+            assertThat(page.featureCard("Execute Orders")).isVisible()
+            assertThat(page.featureCard("Data Blotter")).isVisible()
         }
     }
 
@@ -24,6 +25,7 @@ class NavigationE2ETest : BaseE2ETest() {
     @CsvSource(
         "/, Structured products management",
         "/blotter, Data Blotter",
+        "/admin/leg-builder, Leg Schema Builder",
         "/admin/create-type, Create Product Type",
         "/create-product, Create Product",
         "/order-entry, Order Entry",
@@ -39,7 +41,11 @@ class NavigationE2ETest : BaseE2ETest() {
         withPage("/") { page ->
             page.clickSideNavPath("blotter")
             assertThat(page.getByText("Data Blotter").first()).isVisible()
+            assertThat(page.getByText("Leg Schemas (Level 1 · Admin)")).isVisible()
             assertThat(page.getByText("Product Types (Level 1)")).isVisible()
+
+            page.clickSideNavPath("admin/leg-builder")
+            assertThat(page.getByText("Leg Schema Builder").first()).isVisible()
 
             page.clickSideNavPath("admin/create-type")
             assertThat(page.getByText("Create Product Type").first()).isVisible()
@@ -58,14 +64,29 @@ class NavigationE2ETest : BaseE2ETest() {
     @Test
     fun featureCardsNavigateToWorkflowPages() {
         withPage("/") { page ->
-            page.locator(".feature-card").filter(com.microsoft.playwright.Locator.FilterOptions().setHasText("Define Product Types")).click()
+            page.featureCard("Define Leg Schemas").click()
+            page.waitForAppReady()
+            assertThat(page).hasURL("${baseUrl()}/admin/leg-builder")
+
+            page.navigateAndWait(baseUrl(), "/")
+            page.featureCard("Define Product Types").click()
             page.waitForAppReady()
             assertThat(page).hasURL("${baseUrl()}/admin/create-type")
 
             page.navigateAndWait(baseUrl(), "/")
-            page.locator(".feature-card").filter(com.microsoft.playwright.Locator.FilterOptions().setHasText("Execute Orders")).click()
+            page.featureCard("Create Products").click()
+            page.waitForAppReady()
+            assertThat(page).hasURL("${baseUrl()}/create-product")
+
+            page.navigateAndWait(baseUrl(), "/")
+            page.featureCard("Execute Orders").click()
             page.waitForAppReady()
             assertThat(page).hasURL("${baseUrl()}/order-entry")
+
+            page.navigateAndWait(baseUrl(), "/")
+            page.featureCard("Data Blotter").click()
+            page.waitForAppReady()
+            assertThat(page).hasURL("${baseUrl()}/blotter")
         }
     }
 }

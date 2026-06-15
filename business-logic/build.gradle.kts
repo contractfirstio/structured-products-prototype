@@ -11,8 +11,7 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation(project(":data-access"))
-    implementation(project(":product-dsl"))
+    api(project(":data-access"))
     implementation(libs.spring.boot.starter)
     implementation(libs.spring.boot.starter.data.mongodb)
 }

@@ -2,7 +2,8 @@ package com.contactfirstio.structuredproducts.views
 
 import com.contactfirstio.structuredproducts.service.CreateProductTypeCommand
 import com.contactfirstio.structuredproducts.service.GlobalTermsSchemaDto
-import com.contactfirstio.structuredproducts.service.LegSchemaDto
+import com.contactfirstio.structuredproducts.service.LegSchemaDetail
+import com.contactfirstio.structuredproducts.service.LegSchemaService
 import com.contactfirstio.structuredproducts.service.ProductTypeService
 import com.contactfirstio.structuredproducts.service.ValidationException
 import com.vaadin.flow.component.button.Button
@@ -24,12 +25,12 @@ import com.vaadin.flow.theme.lumo.LumoUtility
 @Route(value = "admin/create-type", layout = MainLayout::class)
 class CreateProductTypeView(
     private val productTypeService: ProductTypeService,
+    private val legSchemaService: LegSchemaService,
 ) : VerticalLayout() {
 
     private data class LegRow(
         val layout: HorizontalLayout,
-        val legTypeField: ComboBox<String>,
-        val mandatoryField: Checkbox,
+        val legSchemaField: ComboBox<LegSchemaDetail>,
     )
 
     private val nameField = TextField("Product Type Name").apply {
@@ -43,7 +44,6 @@ class CreateProductTypeView(
         isPadding = false
     }
     private val legRows = mutableListOf<LegRow>()
-    private val legOptions = productTypeService.availableLegProcessorOptions()
 
     init {
         val shell = com.contactfirstio.structuredproducts.ui.UiComponents.pageShell()
@@ -54,10 +54,10 @@ class CreateProductTypeView(
                 setResponsiveSteps(FormLayout.ResponsiveStep("0", 1))
                 add(nameField, requiresUnderlyingField, requiresMaturityField)
             },
-            H3("Allowed Legs"),
+            H3("Allowed Leg Schemas"),
             legRowsLayout,
             HorizontalLayout(
-                Button("Add Leg", VaadinIcon.PLUS.create()) { addLegRow() },
+                Button("Add Leg Schema", VaadinIcon.PLUS.create()) { addLegRow() },
                 Button("Save Product Type") { save() }.apply {
                     addThemeVariants(ButtonVariant.LUMO_PRIMARY)
                 },
@@ -67,29 +67,24 @@ class CreateProductTypeView(
             com.contactfirstio.structuredproducts.ui.UiComponents.pageHeader(
                 eyebrow = "Level 1 · Admin",
                 title = "Create Product Type",
-                subtitle = "Define global terms and allowed legs. Saved schemas drive every downstream product form.",
+                subtitle = "Define global terms and link saved leg schemas. Saved types drive every downstream product form.",
             ),
             panel,
         )
         add(shell)
         setWidthFull()
         isPadding = false
-
-        addLegRow("ProtectionLeg", true)
-        addLegRow("UpsideLeg", false)
     }
 
-    private fun addLegRow(defaultLegType: String? = null, defaultMandatory: Boolean = false) {
-        val legTypeField = ComboBox<String>("Leg Type").apply {
-            setItems(legOptions.map { it.schemaLegType })
-            setItemLabelGenerator { schemaType ->
-                legOptions.firstOrNull { it.schemaLegType == schemaType }?.displayName ?: schemaType
-            }
+    private fun addLegRow(defaultLegSchema: LegSchemaDetail? = null) {
+        val options = legSchemaService.findAll()
+        val legSchemaField = ComboBox<LegSchemaDetail>("Leg Schema").apply {
+            setItems(options)
+            setItemLabelGenerator { it.name }
             isRequired = true
             width = "100%"
-            value = defaultLegType ?: legOptions.firstOrNull()?.schemaLegType
+            value = defaultLegSchema ?: options.firstOrNull()
         }
-        val mandatoryField = Checkbox("Mandatory").apply { value = defaultMandatory }
 
         val rowLayout = HorizontalLayout().apply {
             setDefaultVerticalComponentAlignment(FlexComponent.Alignment.END)
@@ -97,7 +92,7 @@ class CreateProductTypeView(
             addClassNames(LumoUtility.Gap.MEDIUM)
         }
 
-        val legRow = LegRow(rowLayout, legTypeField, mandatoryField)
+        val legRow = LegRow(rowLayout, legSchemaField)
         val removeButton = Button(VaadinIcon.TRASH.create()) {
             legRowsLayout.remove(rowLayout)
             legRows.remove(legRow)
@@ -105,8 +100,8 @@ class CreateProductTypeView(
             addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY)
         }
 
-        rowLayout.add(legTypeField, mandatoryField, removeButton)
-        rowLayout.expand(legTypeField)
+        rowLayout.add(legSchemaField, removeButton)
+        rowLayout.expand(legSchemaField)
         legRows += legRow
         legRowsLayout.add(rowLayout)
     }
@@ -120,18 +115,12 @@ class CreateProductTypeView(
         }
         nameField.isInvalid = false
 
-        val legSchemas = legRows.mapNotNull { row ->
-            val legType = row.legTypeField.value ?: return@mapNotNull null
-            LegSchemaDto(
-                legType = legType,
-                isRequired = row.mandatoryField.value,
-                parameterLabel = "",
-                processorLegType = "",
-            )
-        }
+        val allowedLegSchemaIds = legRows.mapNotNull { row ->
+            row.legSchemaField.value?.id
+        }.distinct()
 
-        if (legSchemas.isEmpty()) {
-            Notification.show("Add at least one allowed leg", 4000, Notification.Position.MIDDLE)
+        if (allowedLegSchemaIds.isEmpty()) {
+            Notification.show("Add at least one allowed leg schema", 4000, Notification.Position.MIDDLE)
                 .addThemeVariants(NotificationVariant.LUMO_ERROR)
             return
         }
@@ -144,7 +133,7 @@ class CreateProductTypeView(
                         requiresUnderlying = requiresUnderlyingField.value,
                         requiresMaturityDate = requiresMaturityField.value,
                     ),
-                    legSchemas = legSchemas,
+                    allowedLegSchemaIds = allowedLegSchemaIds,
                 ),
             )
             Notification.show("Saved product type: ${saved.name}", 4000, Notification.Position.MIDDLE)
@@ -162,7 +151,5 @@ class CreateProductTypeView(
         requiresMaturityField.value = true
         legRowsLayout.removeAll()
         legRows.clear()
-        addLegRow("ProtectionLeg", true)
-        addLegRow("UpsideLeg", false)
     }
 }

@@ -8,7 +8,14 @@ import org.springframework.stereotype.Component
 class ReferentialIntegrityGuard(
     private val productRepository: ProductRepository,
     private val orderRepository: OrderRepository,
+    private val productTypeRepository: com.contactfirstio.structuredproducts.data.repository.ProductTypeRepository,
 ) {
+
+    fun ensureLegSchemaIsUnreferenced(legSchemaId: String, action: String) {
+        if (productTypeRepository.existsByAllowedLegSchemaIdsContaining(legSchemaId)) {
+            throw ValidationException("Cannot $action leg schema while product types reference it")
+        }
+    }
 
     fun ensureProductTypeIsUnreferenced(typeId: String, action: String) {
         if (productRepository.existsByTypeId(typeId)) {

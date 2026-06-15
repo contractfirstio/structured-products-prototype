@@ -3,7 +3,6 @@ package com.contactfirstio.structuredproducts.service
 import com.contactfirstio.structuredproducts.data.document.ProductDocument
 import com.contactfirstio.structuredproducts.data.repository.ProductRepository
 import com.contactfirstio.structuredproducts.data.repository.ProductTypeRepository
-import com.contactfirstio.structuredproducts.dsl.LegProcessorCatalog
 import org.springframework.stereotype.Service
 
 @Service
@@ -12,7 +11,6 @@ class ProductInstanceService(
     private val productTypeRepository: ProductTypeRepository,
     private val productTypeService: ProductTypeService,
     private val productStructureValidator: ProductStructureValidator,
-    private val valuationService: ValuationService,
 ) {
 
     fun saveProduct(command: CreateProductInstanceCommand): SavedProductResult {
@@ -34,7 +32,7 @@ class ProductInstanceService(
             productType = productType,
             underlying = product.underlying.takeIf { it.isNotBlank() },
             maturityMonths = product.maturityMonths.takeIf { it > 0 },
-            legValues = parseLegValues(product.legs),
+            legData = parseLegData(product.legs),
         )
     }
 
@@ -59,8 +57,8 @@ class ProductInstanceService(
     ): SavedProductResult {
         productStructureValidator.validate(productType, command)
 
-        val legs = productStructureValidator.buildLegs(productType, command.legValues)
-        val status = productStructureValidator.determineStatus(productType, command.legValues)
+        val legs = productStructureValidator.buildLegs(productType, command.legData)
+        val status = productStructureValidator.determineStatus(productType, command.legData)
 
         val product = ProductDocument(
             id = existingId,
@@ -71,8 +69,6 @@ class ProductInstanceService(
             legs = legs,
         )
 
-        valuationService.hydrateContract(product)
-
         val saved = productRepository.save(product)
         return SavedProductResult(
             id = saved.id!!,
@@ -81,11 +77,8 @@ class ProductInstanceService(
         )
     }
 
-    private fun parseLegValues(legs: List<Map<String, Any>>): Map<String, Double?> =
-        legs.mapNotNull { leg ->
-            val type = leg["type"]?.toString() ?: return@mapNotNull null
-            val definition = LegProcessorCatalog.findByProcessorLegType(type) ?: return@mapNotNull null
-            val value = leg[definition.parameterKey] as? Number
-            type to value?.toDouble()
-        }.toMap()
+    private fun parseLegData(legs: List<Map<String, Any>>): List<Map<String, Any>> =
+        legs.map { leg ->
+            leg.filterKeys { it != "legSchemaId" }
+        }
 }

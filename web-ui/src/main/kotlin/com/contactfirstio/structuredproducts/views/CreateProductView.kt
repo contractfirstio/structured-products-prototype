@@ -1,6 +1,5 @@
 package com.contactfirstio.structuredproducts.views
 
-import com.contactfirstio.structuredproducts.service.ContractHydrationException
 import com.contactfirstio.structuredproducts.service.ProductInstanceService
 import com.contactfirstio.structuredproducts.service.ProductTypeDetail
 import com.contactfirstio.structuredproducts.service.ProductTypeService
@@ -57,7 +56,7 @@ class CreateProductView(
             com.contactfirstio.structuredproducts.ui.UiComponents.pageHeader(
                 eyebrow = "Level 2 · Product Instance",
                 title = "Create Product",
-                subtitle = "Select a product type to dynamically render instance fields from its Level 1 schema.",
+                subtitle = "Select a product type to dynamically render leg fields from saved schemas.",
             ),
             panel,
         )
@@ -93,12 +92,6 @@ class CreateProductView(
             ).addThemeVariants(NotificationVariant.LUMO_SUCCESS)
             dynamicFormBuilder.clear()
         } catch (ex: ValidationException) {
-            Notification.show(
-                "Validation failed: ${ex.message}",
-                6000,
-                Notification.Position.MIDDLE,
-            ).addThemeVariants(NotificationVariant.LUMO_ERROR)
-        } catch (ex: ContractHydrationException) {
             Notification.show(
                 "Validation failed: ${ex.message}",
                 6000,

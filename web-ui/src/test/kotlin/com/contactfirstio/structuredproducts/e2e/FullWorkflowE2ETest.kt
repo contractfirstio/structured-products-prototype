@@ -10,27 +10,18 @@ import org.junit.jupiter.api.Test
 class FullWorkflowE2ETest : DatabaseCleanupE2ETest() {
 
     @Test
-    fun completeDeskLifecycleFromTypeCreationThroughBlotterCleanup() {
-        withPage("/admin/create-type") { page ->
-            page.createPpnProductType("Autocall Note")
-        }
+    fun completeDeskLifecycleFromLegSchemaThroughBlotterCleanup() {
+        withPage("/admin/leg-builder") { it.createProtectionLegSchema() }
+        withPage("/admin/leg-builder") { it.createUpsideLegSchema() }
+        withPage("/admin/create-type") { it.createPpnProductType("Autocall Note") }
 
-        withPage("/create-product") { page ->
-            page.selectProductType("Autocall Note")
-            page.fillPpnProductForm("SPX", "36", "100")
-            page.submitProductForm()
-            page.waitForNotification("Product saved as DRAFT")
-        }
+        assertEquals(2, legSchemaRepository.count())
+        assertEquals(1, productTypeRepository.count())
 
+        seedDraftProduct("SPX", "36", "100", "Autocall Note")
         assertEquals(ProductStatus.DRAFT, productRepository.findAll().single().status)
 
-        withPage("/create-product") { page ->
-            page.selectProductType("Autocall Note")
-            page.fillPpnProductForm("SPX", "36", "100", "125")
-            page.submitProductForm()
-            page.waitForNotification("Product saved as ACTIVE")
-        }
-
+        seedActiveProduct("SPX", "36", "100", "125", "Autocall Note")
         assertEquals(2, productRepository.count())
         assertEquals(1, productRepository.findByStatus(ProductStatus.ACTIVE).size)
 

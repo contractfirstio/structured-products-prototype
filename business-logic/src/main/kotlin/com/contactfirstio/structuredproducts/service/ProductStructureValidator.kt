@@ -1,14 +1,14 @@
 package com.contactfirstio.structuredproducts.service
 
-import com.contactfirstio.structuredproducts.data.document.GlobalTermsSchema
-import com.contactfirstio.structuredproducts.data.document.LegSchema
+import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.data.document.ProductStatus
 import com.contactfirstio.structuredproducts.data.document.ProductTypeDocument
-import com.contactfirstio.structuredproducts.dsl.LegProcessorCatalog
 import org.springframework.stereotype.Component
 
 @Component
-class ProductStructureValidator {
+class ProductStructureValidator(
+    private val legSchemaService: LegSchemaService,
+) {
 
     fun validate(type: ProductTypeDocument, command: CreateProductInstanceCommand) {
         val schema = type.globalTermsSchema
@@ -21,51 +21,71 @@ class ProductStructureValidator {
             throw ValidationException("Maturity is required for product type '${type.name}'")
         }
 
-        type.legSchemas.forEach { legSchema ->
-            val processorLegType = LegProcessorCatalog.resolveProcessorLegType(legSchema.legType)
-            val value = command.legValues[processorLegType]
-            if (legSchema.isRequired && value == null) {
-                val label = LegProcessorCatalog.findBySchemaLegType(legSchema.legType)?.parameterLabel
-                    ?: legSchema.legType
-                throw ValidationException("$label is required for product type '${type.name}'")
+        val legSchemas = legSchemaService.findByIds(type.allowedLegSchemaIds)
+        if (legSchemas.size != type.allowedLegSchemaIds.size) {
+            throw ValidationException("Product type '${type.name}' references missing leg schemas")
+        }
+
+        if (command.legData.size != legSchemas.size) {
+            throw ValidationException("Expected ${legSchemas.size} leg(s) for product type '${type.name}'")
+        }
+
+        legSchemas.zip(command.legData).forEach { (legSchema, legData) ->
+            legSchema.fields.forEach { field ->
+                if (field.isRequired && isBlankValue(legData[field.fieldName])) {
+                    throw ValidationException(
+                        "${field.fieldName} is required for leg '${legSchema.name}' on product type '${type.name}'",
+                    )
+                }
             }
         }
     }
 
-    fun buildLegs(type: ProductTypeDocument, legValues: Map<String, Double?>): List<Map<String, Any>> {
-        val legs = mutableListOf<Map<String, Any>>()
+    fun buildLegs(type: ProductTypeDocument, legData: List<Map<String, Any>>): List<Map<String, Any>> {
+        val legSchemas = legSchemaService.findByIds(type.allowedLegSchemaIds)
 
-        type.legSchemas.forEach { legSchema ->
-            val definition = LegProcessorCatalog.findBySchemaLegType(legSchema.legType)
-                ?: throw ValidationException("Unknown leg type '${legSchema.legType}' on product type '${type.name}'")
-            val value = legValues[definition.processorLegType] ?: return@forEach
-
-            legs.add(
-                mapOf(
-                    "type" to definition.processorLegType,
-                    definition.parameterKey to value,
-                ),
-            )
+        return legSchemas.zip(legData).map { (legSchema, data) ->
+            val stored = linkedMapOf<String, Any>("legSchemaId" to legSchema.id)
+            legSchema.fields.forEach { field ->
+                data[field.fieldName]?.let { value ->
+                    stored[field.fieldName] = normalizeValue(field.dataType, value)
+                }
+            }
+            stored
         }
-
-        if (legs.isEmpty()) {
-            throw ValidationException("At least one leg value is required")
-        }
-
-        return legs
     }
 
-    fun determineStatus(type: ProductTypeDocument, legValues: Map<String, Double?>): ProductStatus {
-        val upsideDefinition = LegProcessorCatalog.findByProcessorLegType("upside")
-        if (upsideDefinition != null && type.legSchemas.any { it.legType == upsideDefinition.schemaLegType }) {
-            val participation = legValues["upside"]
-            return if (participation != null) {
-                ProductStatus.ACTIVE
-            } else {
-                ProductStatus.DRAFT
+    fun determineStatus(type: ProductTypeDocument, legData: List<Map<String, Any>>): ProductStatus {
+        val legSchemas = legSchemaService.findByIds(type.allowedLegSchemaIds)
+
+        val hasOptionalGap = legSchemas.zip(legData).any { (legSchema, data) ->
+            legSchema.fields.any { field ->
+                !field.isRequired && isBlankValue(data[field.fieldName])
             }
         }
 
-        return ProductStatus.ACTIVE
+        return if (hasOptionalGap) ProductStatus.DRAFT else ProductStatus.ACTIVE
     }
+
+    private fun isBlankValue(value: Any?): Boolean =
+        when (value) {
+            null -> true
+            is String -> value.isBlank()
+            else -> false
+        }
+
+    private fun normalizeValue(dataType: FieldDataType, value: Any): Any =
+        when (dataType) {
+            FieldDataType.STRING -> value.toString()
+            FieldDataType.DOUBLE -> (value as? Number)?.toDouble()
+                ?: value.toString().toDouble()
+            FieldDataType.INTEGER -> (value as? Number)?.toInt()
+                ?: value.toString().toInt()
+            FieldDataType.BOOLEAN -> when (value) {
+                is Boolean -> value
+                is String -> value.toBooleanStrictOrNull() ?: value.equals("true", ignoreCase = true)
+                else -> value.toString().toBoolean()
+            }
+            FieldDataType.ENUM -> value.toString()
+        }
 }

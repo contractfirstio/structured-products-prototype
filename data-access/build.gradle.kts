@@ -11,7 +11,6 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation(project(":product-dsl"))
     implementation(libs.spring.boot.starter)
     implementation(libs.spring.boot.starter.data.mongodb)
     implementation(libs.kotlin.reflect)

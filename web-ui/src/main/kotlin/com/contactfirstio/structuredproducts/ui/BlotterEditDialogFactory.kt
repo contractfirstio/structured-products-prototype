@@ -1,11 +1,13 @@
 package com.contactfirstio.structuredproducts.ui
 
+import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.service.ActiveProductSummary
 import com.contactfirstio.structuredproducts.service.BlotterService
-import com.contactfirstio.structuredproducts.service.ContractHydrationException
+import com.contactfirstio.structuredproducts.service.CreateLegSchemaCommand
 import com.contactfirstio.structuredproducts.service.CreateProductTypeCommand
+import com.contactfirstio.structuredproducts.service.FieldDefinitionDto
 import com.contactfirstio.structuredproducts.service.GlobalTermsSchemaDto
-import com.contactfirstio.structuredproducts.service.LegSchemaDto
+import com.contactfirstio.structuredproducts.service.LegSchemaDetail
 import com.contactfirstio.structuredproducts.service.ProductTypeDetail
 import com.contactfirstio.structuredproducts.service.ValidationException
 import com.vaadin.flow.component.button.Button
@@ -23,7 +25,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.component.textfield.NumberField
 import com.vaadin.flow.component.textfield.TextField
-import com.vaadin.flow.theme.lumo.LumoUtility
 import org.springframework.stereotype.Component
 
 @Component
@@ -31,9 +32,130 @@ class BlotterEditDialogFactory(
     private val blotterService: BlotterService,
 ) {
 
+    private data class FieldRow(
+        val layout: HorizontalLayout,
+        val fieldNameField: TextField,
+        val dataTypeField: ComboBox<FieldDataType>,
+        val requiredField: Checkbox,
+        val enumOptionsField: TextField,
+    )
+
+    fun openLegSchemaEdit(legSchemaId: String, onSaved: () -> Unit) {
+        val detail = blotterService.getLegSchemaForEdit(legSchemaId)
+
+        val nameField = TextField("Leg Name").apply {
+            value = detail.name
+            width = "100%"
+        }
+        val fieldRowsLayout = VerticalLayout().apply { isPadding = false }
+        val fieldRows = mutableListOf<FieldRow>()
+
+        fun addFieldRow(
+            fieldName: String = "",
+            dataType: FieldDataType = FieldDataType.STRING,
+            required: Boolean = true,
+            enumOptions: String = "",
+        ) {
+            val fieldNameField = TextField("Field Name").apply {
+                value = fieldName
+                width = "100%"
+            }
+            val dataTypeField = ComboBox<FieldDataType>("Data Type").apply {
+                setItems(FieldDataType.entries)
+                value = dataType
+                width = "100%"
+            }
+            val requiredField = Checkbox("Required").apply { value = required }
+            val enumOptionsField = TextField("Enum Options (comma-separated)").apply {
+                value = enumOptions
+                width = "100%"
+                isVisible = dataType == FieldDataType.ENUM
+            }
+
+            dataTypeField.addValueChangeListener { event ->
+                enumOptionsField.isVisible = event.value == FieldDataType.ENUM
+            }
+
+            val rowLayout = HorizontalLayout().apply {
+                setDefaultVerticalComponentAlignment(FlexComponent.Alignment.END)
+                width = "100%"
+            }
+
+            val fieldRow = FieldRow(rowLayout, fieldNameField, dataTypeField, requiredField, enumOptionsField)
+            val removeButton = Button(VaadinIcon.TRASH.create()) {
+                fieldRowsLayout.remove(rowLayout)
+                fieldRows.remove(fieldRow)
+            }.apply { addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON) }
+
+            rowLayout.add(fieldNameField, dataTypeField, requiredField, enumOptionsField, removeButton)
+            rowLayout.expand(fieldNameField)
+            fieldRows += fieldRow
+            fieldRowsLayout.add(rowLayout)
+        }
+
+        detail.fields.forEach { field ->
+            addFieldRow(
+                fieldName = field.fieldName,
+                dataType = field.dataType,
+                required = field.isRequired,
+                enumOptions = field.enumOptions.joinToString(", "),
+            )
+        }
+        if (fieldRows.isEmpty()) addFieldRow()
+
+        val dialog = Dialog().apply {
+            headerTitle = "Edit Leg Schema"
+            width = "900px"
+            add(
+                FormLayout(nameField),
+                H3("Field Definitions"),
+                fieldRowsLayout,
+                Button("Add Field", VaadinIcon.PLUS.create()) { addFieldRow() },
+            )
+            footer.add(
+                Button("Cancel") { close() },
+                Button("Save") {
+                    runCatching {
+                        val fields = fieldRows.mapNotNull { row ->
+                            val fieldName = row.fieldNameField.value?.trim().orEmpty()
+                            val dataType = row.dataTypeField.value ?: return@mapNotNull null
+                            if (fieldName.isEmpty()) return@mapNotNull null
+
+                            val enumOptions = if (dataType == FieldDataType.ENUM) {
+                                row.enumOptionsField.value.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                            } else {
+                                emptyList()
+                            }
+
+                            FieldDefinitionDto(
+                                fieldName = fieldName,
+                                dataType = dataType,
+                                isRequired = row.requiredField.value,
+                                enumOptions = enumOptions,
+                            )
+                        }
+
+                        blotterService.updateLegSchema(
+                            legSchemaId,
+                            CreateLegSchemaCommand(
+                                name = nameField.value,
+                                fields = fields,
+                            ),
+                        )
+                    }.onSuccess {
+                        close()
+                        showSuccess("Leg schema updated")
+                        onSaved()
+                    }.onFailure { ex -> showError(ex) }
+                }.apply { addThemeVariants(ButtonVariant.LUMO_PRIMARY) },
+            )
+        }
+        dialog.open()
+    }
+
     fun openProductTypeEdit(typeId: String, onSaved: () -> Unit) {
         val detail = blotterService.getProductTypeForEdit(typeId)
-        val legOptions = blotterService.availableLegProcessorOptions()
+        val legOptions = blotterService.availableLegSchemas()
 
         val nameField = TextField("Product Type Name").apply {
             value = detail.name
@@ -46,52 +168,48 @@ class BlotterEditDialogFactory(
             value = detail.globalTermsSchema.requiresMaturityDate
         }
         val legRowsLayout = VerticalLayout().apply { isPadding = false }
-        val legRows = mutableListOf<Triple<ComboBox<String>, Checkbox, HorizontalLayout>>()
+        val legRows = mutableListOf<Pair<ComboBox<LegSchemaDetail>, HorizontalLayout>>()
 
-        fun addLegRow(legType: String?, mandatory: Boolean) {
-            val legTypeField = ComboBox<String>("Leg Type").apply {
-                setItems(legOptions.map { it.schemaLegType })
-                setItemLabelGenerator { schemaType ->
-                    legOptions.firstOrNull { it.schemaLegType == schemaType }?.displayName ?: schemaType
-                }
-                value = legType ?: legOptions.firstOrNull()?.schemaLegType
+        fun addLegRow(legSchema: LegSchemaDetail?) {
+            val legSchemaField = ComboBox<LegSchemaDetail>("Leg Schema").apply {
+                setItems(legOptions)
+                setItemLabelGenerator { it.name }
+                value = legSchema ?: legOptions.firstOrNull()
                 width = "100%"
             }
-            val mandatoryField = Checkbox("Mandatory").apply { value = mandatory }
             val row = HorizontalLayout().apply {
                 setDefaultVerticalComponentAlignment(FlexComponent.Alignment.END)
                 width = "100%"
             }
             val removeButton = Button(VaadinIcon.TRASH.create()) {
                 legRowsLayout.remove(row)
-                legRows.removeIf { it.third === row }
+                legRows.removeIf { it.second === row }
             }.apply { addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON) }
-            row.add(legTypeField, mandatoryField, removeButton)
-            row.expand(legTypeField)
-            legRows += Triple(legTypeField, mandatoryField, row)
+            row.add(legSchemaField, removeButton)
+            row.expand(legSchemaField)
+            legRows += legSchemaField to row
             legRowsLayout.add(row)
         }
 
-        detail.legSchemas.forEach { leg -> addLegRow(leg.legType, leg.isRequired) }
-        if (legRows.isEmpty()) addLegRow(null, false)
+        detail.legSchemas.forEach { leg -> addLegRow(leg) }
+        if (legRows.isEmpty()) addLegRow(null)
 
         val dialog = Dialog().apply {
             headerTitle = "Edit Product Type"
             width = "720px"
             add(
                 FormLayout(nameField, requiresUnderlyingField, requiresMaturityField),
-                H3("Allowed Legs"),
+                H3("Allowed Leg Schemas"),
                 legRowsLayout,
-                Button("Add Leg", VaadinIcon.PLUS.create()) { addLegRow(null, false) },
+                Button("Add Leg Schema", VaadinIcon.PLUS.create()) { addLegRow(null) },
             )
             footer.add(
                 Button("Cancel") { close() },
                 Button("Save") {
                     runCatching {
-                        val legSchemas = legRows.mapNotNull { (legTypeField, mandatoryField, _) ->
-                            val legType = legTypeField.value ?: return@mapNotNull null
-                            LegSchemaDto(legType, mandatoryField.value, "", "")
-                        }
+                        val allowedLegSchemaIds = legRows.mapNotNull { (field, _) ->
+                            field.value?.id
+                        }.distinct()
                         blotterService.updateProductType(
                             typeId,
                             CreateProductTypeCommand(
@@ -100,7 +218,7 @@ class BlotterEditDialogFactory(
                                     requiresUnderlying = requiresUnderlyingField.value,
                                     requiresMaturityDate = requiresMaturityField.value,
                                 ),
-                                legSchemas = legSchemas,
+                                allowedLegSchemaIds = allowedLegSchemaIds,
                             ),
                         )
                     }.onSuccess {
@@ -123,7 +241,7 @@ class BlotterEditDialogFactory(
             detail.productType,
             detail.underlying,
             detail.maturityMonths,
-            detail.legValues,
+            detail.legData,
         )
 
         val dialog = Dialog().apply {
@@ -196,7 +314,7 @@ class BlotterEditDialogFactory(
 
     private fun showError(ex: Throwable) {
         val message = when (ex) {
-            is ValidationException, is ContractHydrationException -> ex.message
+            is ValidationException -> ex.message
             else -> ex.message ?: "Update failed"
         }
         Notification.show(message ?: "Update failed", 5000, Notification.Position.MIDDLE)

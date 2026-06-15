@@ -1,29 +1,42 @@
 package com.contactfirstio.structuredproducts.ui
 
+import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.service.CreateProductInstanceCommand
+import com.contactfirstio.structuredproducts.service.FieldDefinitionDto
+import com.contactfirstio.structuredproducts.service.LegSchemaDetail
 import com.contactfirstio.structuredproducts.service.ProductTypeDetail
+import com.vaadin.flow.component.Component
+import com.vaadin.flow.component.checkbox.Checkbox
+import com.vaadin.flow.component.combobox.ComboBox
 import com.vaadin.flow.component.formlayout.FormLayout
+import com.vaadin.flow.component.html.H4
 import com.vaadin.flow.component.textfield.IntegerField
 import com.vaadin.flow.component.textfield.NumberField
 import com.vaadin.flow.component.textfield.TextField
+import com.vaadin.flow.theme.lumo.LumoUtility
 
 class DynamicProductFormBuilder {
 
     private var underlyingField: TextField? = null
     private var maturityField: IntegerField? = null
-    private val legFields = linkedMapOf<String, NumberField>()
+    private val legFieldGroups = mutableListOf<LegFieldGroup>()
+
+    private data class LegFieldGroup(
+        val legSchema: LegSchemaDetail,
+        val fields: Map<String, Component>,
+    )
 
     fun build(
         formLayout: FormLayout,
         productType: ProductTypeDetail,
         initialUnderlying: String? = null,
         initialMaturityMonths: Int? = null,
-        initialLegValues: Map<String, Double?> = emptyMap(),
+        initialLegData: List<Map<String, Any>> = emptyList(),
     ) {
         formLayout.removeAll()
         underlyingField = null
         maturityField = null
-        legFields.clear()
+        legFieldGroups.clear()
 
         if (productType.globalTermsSchema.requiresUnderlying) {
             underlyingField = TextField("Underlying").apply {
@@ -44,27 +57,74 @@ class DynamicProductFormBuilder {
             formLayout.add(maturityField)
         }
 
-        productType.legSchemas.forEach { legSchema ->
-            val field = NumberField(legSchema.parameterLabel).apply {
-                isRequired = legSchema.isRequired
-                min = 0.0
-                step = 1.0
-                if (legSchema.processorLegType == "protection") {
-                    max = 100.0
-                }
-                initialLegValues[legSchema.processorLegType]?.let { value = it }
-                if (!legSchema.isRequired) {
-                    helperText = "Leave blank to save as DRAFT (RFQ)."
-                }
+        productType.legSchemas.forEachIndexed { index, legSchema ->
+            val initialValues = initialLegData.getOrNull(index).orEmpty()
+            formLayout.add(
+                H4(legSchema.name).apply {
+                    addClassNames(LumoUtility.Margin.Top.MEDIUM, LumoUtility.Margin.Bottom.SMALL)
+                },
+            )
+
+            val fields = linkedMapOf<String, Component>()
+            legSchema.fields.forEach { definition ->
+                val component = createFieldComponent(definition, initialValues[definition.fieldName])
+                fields[definition.fieldName] = component
+                formLayout.add(component)
             }
-            legFields[legSchema.processorLegType] = field
-            formLayout.add(field)
+
+            legFieldGroups += LegFieldGroup(legSchema, fields)
         }
     }
 
     fun build(formLayout: FormLayout, productType: ProductTypeDetail) {
-        build(formLayout, productType, null, null, emptyMap())
+        build(formLayout, productType, null, null, emptyList())
     }
+
+    private fun createFieldComponent(
+        definition: FieldDefinitionDto,
+        initialValue: Any?,
+    ): Component =
+        when (definition.dataType) {
+            FieldDataType.STRING -> TextField(definition.fieldName).apply {
+                isRequired = definition.isRequired
+                value = initialValue?.toString().orEmpty()
+            }
+
+            FieldDataType.DOUBLE -> NumberField(definition.fieldName).apply {
+                isRequired = definition.isRequired
+                step = 0.01
+                initialValue?.let { value = (it as? Number)?.toDouble() ?: it.toString().toDouble() }
+                if (!definition.isRequired) {
+                    helperText = "Leave blank to save as DRAFT (RFQ)."
+                }
+            }
+
+            FieldDataType.INTEGER -> IntegerField(definition.fieldName).apply {
+                isRequired = definition.isRequired
+                step = 1
+                initialValue?.let { value = (it as? Number)?.toInt() ?: it.toString().toInt() }
+                if (!definition.isRequired) {
+                    helperText = "Leave blank to save as DRAFT (RFQ)."
+                }
+            }
+
+            FieldDataType.BOOLEAN -> Checkbox(definition.fieldName).apply {
+                value = when (initialValue) {
+                    is Boolean -> initialValue
+                    is String -> initialValue.toBooleanStrictOrNull() ?: false
+                    else -> false
+                }
+            }
+
+            FieldDataType.ENUM -> ComboBox<String>(definition.fieldName).apply {
+                isRequired = definition.isRequired
+                setItems(definition.enumOptions)
+                initialValue?.toString()?.let { value = it }
+                if (!definition.isRequired) {
+                    helperText = "Leave blank to save as DRAFT (RFQ)."
+                }
+            }
+        }
 
     fun validate(): Boolean {
         var valid = true
@@ -79,12 +139,30 @@ class DynamicProductFormBuilder {
             if (field.isInvalid) valid = false
         }
 
-        legFields.forEach { (_, field) ->
-            if (field.isRequired && field.isEmpty) {
-                field.isInvalid = true
-                valid = false
-            } else {
-                field.isInvalid = false
+        legFieldGroups.forEach { group ->
+            group.legSchema.fields.forEach { definition ->
+                if (!definition.isRequired) return@forEach
+                val component = group.fields[definition.fieldName] ?: return@forEach
+                when (component) {
+                    is TextField -> {
+                        component.isInvalid = component.isEmpty
+                        if (component.isInvalid) valid = false
+                    }
+                    is NumberField -> {
+                        component.isInvalid = component.isEmpty
+                        if (component.isInvalid) valid = false
+                    }
+                    is IntegerField -> {
+                        component.isInvalid = component.isEmpty
+                        if (component.isInvalid) valid = false
+                    }
+                    is ComboBox<*> -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val combo = component as ComboBox<String>
+                        combo.isInvalid = combo.isEmpty
+                        if (combo.isInvalid) valid = false
+                    }
+                }
             }
         }
 
@@ -92,26 +170,51 @@ class DynamicProductFormBuilder {
     }
 
     fun toCommand(typeId: String): CreateProductInstanceCommand {
-        val legValues = legFields.mapValues { (_, field) ->
-            field.value.takeIf { !field.isEmpty }
+        val legData = legFieldGroups.map { group ->
+            val data = linkedMapOf<String, Any>()
+            group.legSchema.fields.forEach { definition ->
+                val component = group.fields[definition.fieldName] ?: return@forEach
+                extractValue(component, definition)?.let { data[definition.fieldName] = it }
+            }
+            data
         }
 
         return CreateProductInstanceCommand(
             typeId = typeId,
             underlying = underlyingField?.value?.trim(),
             maturityMonths = maturityField?.value,
-            legValues = legValues,
+            legData = legData,
         )
     }
+
+    private fun extractValue(component: Component, definition: FieldDefinitionDto): Any? =
+        when (component) {
+            is TextField -> component.value.takeIf { it.isNotBlank() }
+            is NumberField -> component.value.takeIf { !component.isEmpty }
+            is IntegerField -> component.value.takeIf { !component.isEmpty }
+            is Checkbox -> component.value
+            is ComboBox<*> -> {
+                @Suppress("UNCHECKED_CAST")
+                (component as ComboBox<String>).value?.takeIf { it.isNotBlank() }
+            }
+            else -> null
+        }
 
     fun clear() {
         underlyingField?.clear()
         maturityField?.value = 12
-        legFields.values.forEach { field ->
-            if (field.label.orEmpty().contains("Protection")) {
-                field.value = 100.0
-            } else {
-                field.clear()
+        legFieldGroups.forEach { group ->
+            group.fields.values.forEach { component ->
+                when (component) {
+                    is TextField -> component.clear()
+                    is NumberField -> component.clear()
+                    is IntegerField -> component.clear()
+                    is Checkbox -> component.value = false
+                    is ComboBox<*> -> {
+                        @Suppress("UNCHECKED_CAST")
+                        (component as ComboBox<String>).clear()
+                    }
+                }
             }
         }
     }

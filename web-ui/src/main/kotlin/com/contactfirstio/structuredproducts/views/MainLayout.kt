@@ -37,6 +37,7 @@ class MainLayout : AppLayout() {
         val nav = SideNav()
         nav.addItem(SideNavItem("Home", HomeView::class.java, VaadinIcon.HOME.create()))
         nav.addItem(SideNavItem("Data Blotter", BlotterView::class.java, VaadinIcon.TABLE.create()))
+        nav.addItem(SideNavItem("Leg Schema Builder", LegSchemaBuilderView::class.java, VaadinIcon.FORM.create()))
         nav.addItem(SideNavItem("Create Product Type", CreateProductTypeView::class.java, VaadinIcon.COG.create()))
         nav.addItem(SideNavItem("Create Product", CreateProductView::class.java, VaadinIcon.PLUS.create()))
         nav.addItem(SideNavItem("Order Entry", OrderEntryView::class.java, VaadinIcon.CART.create()))

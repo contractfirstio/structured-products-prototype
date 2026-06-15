@@ -1,40 +1,49 @@
 package com.contactfirstio.structuredproducts.service
 
+import com.contactfirstio.structuredproducts.data.document.FieldDataType
+
 data class GlobalTermsSchemaDto(
     val requiresUnderlying: Boolean,
     val requiresMaturityDate: Boolean,
 )
 
-data class LegSchemaDto(
-    val legType: String,
+data class FieldDefinitionDto(
+    val fieldName: String,
+    val dataType: FieldDataType,
     val isRequired: Boolean,
-    val parameterLabel: String,
-    val processorLegType: String,
+    val enumOptions: List<String> = emptyList(),
+)
+
+data class LegSchemaDetail(
+    val id: String,
+    val name: String,
+    val fields: List<FieldDefinitionDto>,
 )
 
 data class ProductTypeDetail(
     val id: String,
     val name: String,
     val globalTermsSchema: GlobalTermsSchemaDto,
-    val legSchemas: List<LegSchemaDto>,
+    val allowedLegSchemaIds: List<String>,
+    val legSchemas: List<LegSchemaDetail>,
 )
 
-data class LegProcessorOption(
-    val schemaLegType: String,
-    val displayName: String,
+data class CreateLegSchemaCommand(
+    val name: String,
+    val fields: List<FieldDefinitionDto>,
 )
 
 data class CreateProductTypeCommand(
     val name: String,
     val globalTermsSchema: GlobalTermsSchemaDto,
-    val legSchemas: List<LegSchemaDto>,
+    val allowedLegSchemaIds: List<String>,
 )
 
 data class CreateProductInstanceCommand(
     val typeId: String,
     val underlying: String?,
     val maturityMonths: Int?,
-    val legValues: Map<String, Double?>,
+    val legData: List<Map<String, Any>>,
 )
 
 data class OrderEditDetail(
@@ -50,7 +59,7 @@ data class ProductInstanceEditDetail(
     val productType: ProductTypeDetail,
     val underlying: String?,
     val maturityMonths: Int?,
-    val legValues: Map<String, Double?>,
+    val legData: List<Map<String, Any>>,
 )
 
 data class SavedProductResult(

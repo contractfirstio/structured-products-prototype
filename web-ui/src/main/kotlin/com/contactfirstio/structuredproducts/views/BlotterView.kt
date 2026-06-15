@@ -1,6 +1,7 @@
 package com.contactfirstio.structuredproducts.views
 
 import com.contactfirstio.structuredproducts.service.BlotterService
+import com.contactfirstio.structuredproducts.service.LegSchemaBlotterRow
 import com.contactfirstio.structuredproducts.service.OrderBlotterRow
 import com.contactfirstio.structuredproducts.service.ProductInstanceBlotterRow
 import com.contactfirstio.structuredproducts.service.ProductTypeBlotterRow
@@ -30,6 +31,7 @@ class BlotterView(
 ) : VerticalLayout() {
 
     private val currencyFormat = NumberFormat.getCurrencyInstance()
+    private val legSchemaGrid = createLegSchemaGrid()
     private val productTypeGrid = createProductTypeGrid()
     private val productInstanceGrid = createProductInstanceGrid()
     private val orderGrid = createOrderGrid()
@@ -43,9 +45,10 @@ class BlotterView(
             com.contactfirstio.structuredproducts.ui.UiComponents.pageHeader(
                 eyebrow = "Operations",
                 title = "Data Blotter",
-                subtitle = "Review, edit, and delete product types, product instances, and orders. Types with instances and instances with orders are protected.",
+                subtitle = "Review, edit, and delete leg schemas, product types, product instances, and orders. Records with dependents are protected.",
                 Button("Refresh", VaadinIcon.REFRESH.create()) { refresh() },
             ),
+            createSection("Leg Schemas (Level 1 · Admin)", legSchemaGrid),
             createSection("Product Types (Level 1)", productTypeGrid),
             createSection("Product Instances (Level 2)", productInstanceGrid),
             createSection("Orders (Level 3)", orderGrid),
@@ -62,6 +65,29 @@ class BlotterView(
                 H3(title),
                 grid,
             )
+        }
+
+    private fun createLegSchemaGrid(): Grid<LegSchemaBlotterRow> =
+        Grid(LegSchemaBlotterRow::class.java, false).apply {
+            addColumn(LegSchemaBlotterRow::id).setHeader("ID").setFlexGrow(1)
+            addColumn(LegSchemaBlotterRow::name).setHeader("Name").setFlexGrow(2)
+            addColumn(LegSchemaBlotterRow::fieldsSummary).setHeader("Fields").setFlexGrow(4)
+            addComponentColumn { row ->
+                actionButtons(
+                    "leg-schema",
+                    row.id,
+                    row.canEdit,
+                    row.canDelete,
+                    { editDialogFactory.openLegSchemaEdit(row.id) { refresh() } },
+                    { blotterService.deleteLegSchema(row.id) },
+                )
+            }
+                .setHeader("")
+                .setFlexGrow(0)
+                .setWidth("120px")
+            addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_ROW_STRIPES)
+            setAllRowsVisible(true)
+            width = "100%"
         }
 
     private fun createProductTypeGrid(): Grid<ProductTypeBlotterRow> =
@@ -201,6 +227,7 @@ class BlotterView(
 
     private fun refresh() {
         val snapshot = blotterService.loadSnapshot()
+        legSchemaGrid.setItems(snapshot.legSchemas)
         productTypeGrid.setItems(snapshot.productTypes)
         productInstanceGrid.setItems(snapshot.productInstances)
         orderGrid.setItems(snapshot.orders)

@@ -28,9 +28,14 @@ class HomeView : VerticalLayout() {
             addClassName("feature-grid")
             add(
                 featureLink(
+                    LegSchemaBuilderView::class.java,
+                    "Define Leg Schemas",
+                    "Model Level 1 leg field definitions for dynamic data capture.",
+                ),
+                featureLink(
                     CreateProductTypeView::class.java,
                     "Define Product Types",
-                    "Model Level 1 schemas with global terms and leg rules.",
+                    "Link leg schemas and global terms into product type templates.",
                 ),
                 featureLink(
                     CreateProductView::class.java,

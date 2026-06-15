@@ -1,5 +1,13 @@
 package com.contactfirstio.structuredproducts.service
 
+data class LegSchemaBlotterRow(
+    val id: String,
+    val name: String,
+    val fieldsSummary: String,
+    val canEdit: Boolean,
+    val canDelete: Boolean,
+)
+
 data class ProductTypeBlotterRow(
     val id: String,
     val name: String,
@@ -32,6 +40,7 @@ data class OrderBlotterRow(
 )
 
 data class BlotterSnapshot(
+    val legSchemas: List<LegSchemaBlotterRow>,
     val productTypes: List<ProductTypeBlotterRow>,
     val productInstances: List<ProductInstanceBlotterRow>,
     val orders: List<OrderBlotterRow>,

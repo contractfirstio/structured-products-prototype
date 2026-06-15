@@ -11,6 +11,62 @@ import org.junit.jupiter.api.Test
 class BlotterE2ETest : DatabaseCleanupE2ETest() {
 
     @Test
+    fun blotterDisplaysLegSchemas() {
+        withPage("/admin/leg-builder") { it.createProtectionLegSchema() }
+
+        withPage("/blotter") { page ->
+            val legSchemas = page.blotterSection("Leg Schemas (Level 1 · Admin)")
+            assertThat(legSchemas.gridCellWith(PROTECTION_LEG_NAME)).isVisible()
+            assertThat(legSchemas.gridCellWith("Protection Level (%)")).isVisible()
+        }
+    }
+
+    @Test
+    fun editLegSchemaWhenUnreferenced() {
+        withPage("/admin/leg-builder") { it.createProtectionLegSchema() }
+        val legId = legSchemaRepository.findAll().single().id!!
+
+        withPage("/blotter") { page ->
+            page.clickBlotterEdit("leg-schema", legId)
+            page.waitForDialogTitle("Edit Leg Schema")
+            page.fillDialogField("Leg Name", "Enhanced Protection Leg")
+            page.saveDialog()
+            page.waitForNotification("Leg schema updated")
+
+            assertThat(page.blotterSection("Leg Schemas (Level 1 · Admin)").gridCellWith("Enhanced Protection Leg")).isVisible()
+        }
+
+        assertEquals("Enhanced Protection Leg", legSchemaRepository.findAll().single().name)
+    }
+
+    @Test
+    fun deleteLegSchemaWhenUnreferenced() {
+        withPage("/admin/leg-builder") { it.createProtectionLegSchema() }
+        val legId = legSchemaRepository.findAll().single().id!!
+
+        withPage("/blotter") { page ->
+            page.clickBlotterDelete("leg-schema", legId)
+            page.confirmDeleteDialog()
+        }
+
+        assertEquals(0, legSchemaRepository.count())
+    }
+
+    @Test
+    fun referentialIntegrityProtectsReferencedLegSchemas() {
+        seedPpnProductType()
+        val protectionLegId = legSchemaRepository.findAll().first { it.name == PROTECTION_LEG_NAME }.id!!
+        val upsideLegId = legSchemaRepository.findAll().first { it.name == UPSIDE_LEG_NAME }.id!!
+
+        withPage("/blotter") { page ->
+            page.expectBlotterActionProtected("leg-schema", protectionLegId, "edit")
+            page.expectBlotterActionProtected("leg-schema", protectionLegId, "delete")
+            page.expectBlotterActionProtected("leg-schema", upsideLegId, "edit")
+            page.expectBlotterActionProtected("leg-schema", upsideLegId, "delete")
+        }
+    }
+
+    @Test
     fun blotterDisplaysCreatedHierarchy() {
         seedFullHierarchy()
 
@@ -20,6 +76,8 @@ class BlotterE2ETest : DatabaseCleanupE2ETest() {
             val orders = page.blotterSection("Orders (Level 3)")
 
             assertThat(types.gridCellWith(PPN_TYPE_NAME)).isVisible()
+            assertThat(types.gridCellWith(PROTECTION_LEG_NAME)).isVisible()
+            assertThat(types.gridCellWith(UPSIDE_LEG_NAME)).isVisible()
             assertThat(instances.gridCellWith("MSFT")).isVisible()
             assertThat(instances.gridCellWith("ACTIVE")).isVisible()
             assertThat(orders.gridCellWith("MSFT")).isVisible()
@@ -30,13 +88,7 @@ class BlotterE2ETest : DatabaseCleanupE2ETest() {
     @Test
     fun blotterRefreshKeepsLoadedData() {
         seedPpnProductType()
-
-        withPage("/create-product") { page ->
-            page.selectProductType(PPN_TYPE_NAME)
-            page.fillPpnProductForm("GOOG", "24", "100")
-            page.submitProductForm()
-            page.waitForNotification("Product saved as DRAFT")
-        }
+        seedDraftProduct("GOOG", "24", "100")
 
         withPage("/blotter") { page ->
             val instances = page.blotterSection("Product Instances (Level 2)")
@@ -128,16 +180,12 @@ class BlotterE2ETest : DatabaseCleanupE2ETest() {
             page.confirmDeleteDialog()
             assertEquals(0, orderRepository.count())
 
-            com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat(
-                page.getByTestId("blotter-delete-product-instance-$productId"),
-            ).isEnabled()
+            assertThat(page.getByTestId("blotter-delete-product-instance-$productId")).isEnabled()
             page.clickBlotterDelete("product-instance", productId)
             page.confirmDeleteDialog()
             assertEquals(0, productRepository.count())
 
-            com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat(
-                page.getByTestId("blotter-delete-product-type-$typeId"),
-            ).isEnabled()
+            assertThat(page.getByTestId("blotter-delete-product-type-$typeId")).isEnabled()
             page.clickBlotterDelete("product-type", typeId)
             page.confirmDeleteDialog()
             assertEquals(0, productTypeRepository.count())
@@ -146,39 +194,5 @@ class BlotterE2ETest : DatabaseCleanupE2ETest() {
         assertTrue(productTypeRepository.findAll().isEmpty())
         assertTrue(productRepository.findAll().isEmpty())
         assertTrue(orderRepository.findAll().isEmpty())
-    }
-
-    private fun seedPpnProductType() {
-        withPage("/admin/create-type") { page ->
-            page.createPpnProductType()
-        }
-    }
-
-    private fun seedActiveProduct(
-        underlying: String,
-        maturity: String,
-        protection: String,
-        participation: String,
-    ) {
-        withPage("/create-product") { page ->
-            page.selectProductType(PPN_TYPE_NAME)
-            page.fillPpnProductForm(underlying, maturity, protection, participation)
-            page.submitProductForm()
-            page.waitForNotification("Product saved as ACTIVE")
-        }
-    }
-
-    private fun seedFullHierarchy() {
-        seedPpnProductType()
-        seedActiveProduct("MSFT", "24", "100", "110")
-
-        withPage("/order-entry") { page ->
-            page.submitOrder("MSFT", "50000")
-            page.waitForNotification("Order submitted for MSFT")
-        }
-
-        assertEquals(1, productTypeRepository.count())
-        assertEquals(1, productRepository.findByStatus(ProductStatus.ACTIVE).size)
-        assertEquals(1, orderRepository.count())
     }
 }

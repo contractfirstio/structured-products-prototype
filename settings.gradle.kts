@@ -8,7 +8,6 @@ pluginManagement {
 
 rootProject.name = "structured-products-prototype"
 
-include("product-dsl")
 include("data-access")
 include("business-logic")
 include("web-ui")
