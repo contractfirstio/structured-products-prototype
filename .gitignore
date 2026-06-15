@@ -14,7 +14,8 @@ build
 node_modules/
 target
 vite.generated.ts
-src/main/frontend/generated/
+web-ui/src/main/frontend/generated/
+web-ui/vite.generated.ts
 
 # IDE compile output
 bin/
