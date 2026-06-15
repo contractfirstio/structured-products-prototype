@@ -1,0 +1,9 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: structured-products-prototype
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/structured-products}
