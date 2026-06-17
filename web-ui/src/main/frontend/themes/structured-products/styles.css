@@ -1,7 +1,82 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Frutiger for UBS Web — same family as ubs.com (Light 300, Medium 500) */
+@font-face {
+    font-family: "Frutiger";
+    src: url("fonts/FrutigerforUBSWeb-Lt.woff2") format("woff2");
+    font-display: swap;
+    font-style: normal;
+    font-weight: 300 499;
+}
 
+@font-face {
+    font-family: "Frutiger";
+    src: url("fonts/FrutigerforUBSWeb-Md.woff2") format("woff2");
+    font-display: swap;
+    font-style: normal;
+    font-weight: 500 700;
+}
+
+/*
+ * Palette derived from ubs.com publish CSS — warm reds, pastel tags, stone grays.
+ */
 html {
     color-scheme: light;
+
+    /* Brand */
+    --ubs-red: #e60000;
+    --ubs-red-hover: #b30000;
+    --ubs-red-dark: #8a000a;
+    --ubs-red-border: #da0000;
+    --ubs-error: #da0000;
+    --ubs-black: #1c1c1c;             /* --col-text-primary */
+
+    /* Text — ubs.com hierarchy */
+    --ubs-text-strong: var(--ubs-black);
+    --ubs-text: var(--ubs-black);
+    --ubs-text-muted: #5a5d5c;         /* --col-text-subtle */
+    --ubs-text-subtle: #8e8d83;         /* --col-background-subtler */
+    --ubs-text-on-dark: #f9f9f7;
+
+    /* Surfaces */
+    --ubs-white: #ffffff;
+    --ubs-page: #f4f3ee;
+    --ubs-surface-raised: #f9f9f7;
+    --ubs-surface-muted: #fbf9ee;
+    --ubs-surface-warm: #f3e8c3;
+    --ubs-surface-hover: #f4f3ee;
+    --ubs-chrome: #f0efeb;
+    --ubs-chrome-hover: #e8e6e0;
+
+    /* Borders */
+    --ubs-border: #e8e6e0;
+    --ubs-border-strong: #dedede;
+    --ubs-border-subtle: #f0efeb;
+
+    /* Pastels — ubs.com tag / UI tokens */
+    --ubs-pastel: #f3e8c3;           /* --col-background-tags-04 */
+    --ubs-pastel-soft: #fbf9ee;       /* --col-background-ui-40 */
+    --ubs-pastel-sage: #e1eaa9;       /* --col-background-tags-02 */
+
+    /* Chrome — very light surfaces only */
+    --ubs-chrome-dark: #f9f9f7;
+    --ubs-chrome-mid: #cccabc;
+    --ubs-chrome-accent: #f4f3ee;
+
+    /* Semantic */
+    --ubs-success: #879420;
+    --ubs-success-soft: #e1eaa9;
+    --ubs-warning: #e4a911;
+
+    /* Alphas */
+    --ubs-red-alpha-10: rgba(230, 0, 0, 0.1);
+    --ubs-red-alpha-12: rgba(230, 0, 0, 0.12);
+    --ubs-red-alpha-20: rgba(230, 0, 0, 0.2);
+    --ubs-red-alpha-08: rgba(230, 0, 0, 0.08);
+    --ubs-warm-alpha-04: rgba(28, 28, 28, 0.04);
+    --ubs-warm-alpha-07: rgba(28, 28, 28, 0.07);
+    --ubs-warm-alpha-12: rgba(28, 28, 28, 0.1);
+    --ubs-warm-alpha-18: rgba(28, 28, 28, 0.14);
+    --ubs-shadow: rgba(142, 141, 131, 0.06);
+    --ubs-success-alpha-20: rgba(135, 148, 32, 0.25);
 
     --lumo-size-xs: 1.25rem;
     --lumo-size-s: 1.75rem;
@@ -14,69 +89,102 @@ html {
     --lumo-space-l: 0.75rem;
     --lumo-space-xl: 1rem;
 
-    --sp-bg-page: hsl(210, 20%, 98%);
-    --sp-bg-surface: #ffffff;
-    --sp-bg-subtle: hsl(210, 24%, 96%);
-    --sp-bg-muted: hsl(210, 18%, 93%);
-    --sp-border: hsl(214, 20%, 88%);
-    --sp-border-strong: hsl(214, 22%, 78%);
-    --sp-primary: hsl(213, 56%, 24%);
-    --sp-primary-hover: hsl(213, 56%, 20%);
-    --sp-primary-soft: hsl(213, 45%, 95%);
-    --sp-accent: hsl(213, 70%, 42%);
-    --sp-text: hsl(215, 28%, 17%);
-    --sp-text-muted: hsl(215, 14%, 42%);
-    --sp-text-subtle: hsl(215, 10%, 55%);
-    --sp-success: hsl(152, 45%, 32%);
-    --sp-success-soft: hsl(152, 40%, 94%);
-    --sp-warning: hsl(32, 85%, 42%);
+    --sp-bg-page: var(--ubs-page);
+    --sp-bg-surface: var(--ubs-white);
+    --sp-bg-subtle: var(--ubs-surface-raised);
+    --sp-bg-muted: var(--ubs-chrome);
+    --sp-border: var(--ubs-border);
+    --sp-border-strong: var(--ubs-border-strong);
+    --sp-primary: var(--ubs-black);
+    --sp-primary-hover: #000000;
+    --sp-primary-soft: var(--ubs-pastel-soft);
+    --sp-accent: var(--ubs-red);
+    --sp-text: var(--ubs-black);
+    --sp-text-muted: var(--ubs-text-muted);
+    --sp-text-subtle: var(--ubs-text-subtle);
+    --sp-success: var(--ubs-success);
+    --sp-success-soft: var(--ubs-success-soft);
+    --sp-warning: var(--ubs-warning);
+    --sp-negative: var(--ubs-error);
+    --sp-accent-alpha-10: var(--ubs-red-alpha-10);
+    --sp-accent-alpha-12: var(--ubs-red-alpha-12);
+    --sp-accent-alpha-20: var(--ubs-red-alpha-20);
+    --sp-success-alpha-20: var(--ubs-success-alpha-20);
+    --sp-red-alpha-08: var(--ubs-red-alpha-08);
+    --sp-text-alpha-04: var(--ubs-warm-alpha-04);
+    --sp-text-alpha-07: var(--ubs-warm-alpha-07);
+    --sp-text-alpha-12: var(--ubs-warm-alpha-12);
+    --sp-text-alpha-18: var(--ubs-warm-alpha-18);
 
     --lumo-base-color: var(--sp-bg-surface);
     --lumo-body-text-color: var(--sp-text);
     --lumo-secondary-text-color: var(--sp-text-muted);
     --lumo-tertiary-text-color: var(--sp-text-subtle);
-    --lumo-primary-color: var(--sp-accent);
-    --lumo-primary-text-color: #ffffff;
-    --lumo-primary-color-10pct: hsla(213, 70%, 42%, 0.1);
-    --lumo-primary-color-50pct: hsla(213, 70%, 42%, 0.45);
+    --lumo-primary-color: var(--ubs-red);
+    --lumo-primary-text-color: #fafafa;
+    --lumo-primary-color-10pct: var(--ubs-red-alpha-10);
+    --lumo-primary-color-50pct: rgba(230, 0, 0, 0.45);
     --lumo-success-color: var(--sp-success);
     --lumo-success-text-color: var(--sp-success);
     --lumo-success-color-10pct: var(--sp-success-soft);
-    --lumo-error-color: hsl(0, 65%, 45%);
-    --lumo-error-text-color: hsl(0, 65%, 45%);
-    --lumo-error-color-10pct: hsla(0, 65%, 45%, 0.08);
-    --lumo-contrast-5pct: hsla(215, 28%, 17%, 0.04);
-    --lumo-contrast-10pct: hsla(215, 28%, 17%, 0.07);
-    --lumo-contrast-20pct: hsla(215, 28%, 17%, 0.12);
-    --lumo-contrast-30pct: hsla(215, 28%, 17%, 0.18);
-    --lumo-shade-5pct: hsla(215, 28%, 17%, 0.04);
-    --lumo-shade-10pct: hsla(215, 28%, 17%, 0.08);
-    --lumo-shade-20pct: hsla(215, 28%, 17%, 0.14);
-    --lumo-border-radius-l: 0.5rem;
-    --lumo-border-radius-m: 0.375rem;
-    --lumo-box-shadow-xs: 0 1px 2px hsla(215, 28%, 17%, 0.06);
-    --lumo-box-shadow-s: 0 1px 3px hsla(215, 28%, 17%, 0.08), 0 1px 2px hsla(215, 28%, 17%, 0.04);
-    --lumo-box-shadow-m: 0 4px 12px hsla(215, 28%, 17%, 0.08);
+    --lumo-error-color: var(--sp-negative);
+    --lumo-error-text-color: var(--sp-negative);
+    --lumo-error-color-10pct: var(--ubs-red-alpha-08);
+    --lumo-contrast-5pct: var(--sp-text-alpha-04);
+    --lumo-contrast-10pct: var(--sp-text-alpha-07);
+    --lumo-contrast-20pct: var(--sp-text-alpha-12);
+    --lumo-contrast-30pct: var(--sp-text-alpha-18);
+    --lumo-shade-5pct: var(--sp-text-alpha-04);
+    --lumo-shade-10pct: rgba(142, 141, 131, 0.05);
+    --lumo-shade-20pct: rgba(142, 141, 131, 0.08);
+    --lumo-border-radius-l: 0.375rem;
+    --lumo-border-radius-m: 0.125rem;
+    --lumo-box-shadow-xs: 0 1px 2px var(--ubs-shadow);
+    --lumo-box-shadow-s: 0 1px 2px rgba(142, 141, 131, 0.05);
+    --lumo-box-shadow-m: 0 2px 8px rgba(142, 141, 131, 0.06);
 
-    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
+    font-weight: 300;
     background: var(--sp-bg-page);
 }
 
 body,
 #outlet {
     min-height: 100vh;
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
 }
 
-/* App shell */
+vaadin-text-field,
+vaadin-number-field,
+vaadin-integer-field,
+vaadin-combo-box,
+vaadin-checkbox,
+vaadin-select,
+vaadin-text-area,
+vaadin-grid,
+vaadin-button,
+vaadin-side-nav-item,
+vaadin-dialog-overlay,
+vaadin-notification-card {
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
+}
+
+/* App shell — light header, subtle chrome */
 vaadin-app-layout.app-shell::part(navbar) {
-    background: var(--sp-bg-surface);
-    border-bottom: 1px solid var(--sp-border);
-    box-shadow: var(--lumo-box-shadow-xs);
+    background: var(--ubs-white);
+    border-top: none;
+    border-bottom: 1px solid var(--ubs-border);
+    box-shadow: none;
+    color: var(--sp-text);
 }
 
 vaadin-app-layout.app-shell::part(drawer) {
-    background: var(--sp-bg-surface);
-    border-right: 1px solid var(--sp-border);
+    background: var(--ubs-white);
+    border-right: 1px solid var(--ubs-border);
+}
+
+.app-shell vaadin-drawer-toggle {
+    color: var(--sp-text-muted);
 }
 
 .app-navbar {
@@ -86,45 +194,49 @@ vaadin-app-layout.app-shell::part(drawer) {
 
 .app-navbar-title {
     font-size: 1.05rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--sp-primary);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--sp-text);
 }
 
 .app-navbar-badge {
     margin-left: auto;
-    padding: 0.25rem 0.6rem;
+    padding: 0.25rem 0.65rem;
     border-radius: var(--lumo-border-radius-m);
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--sp-text-muted);
-    border: 1px solid var(--sp-border);
-    background: var(--sp-bg-subtle);
+    border: 1px solid var(--ubs-border);
+    background: var(--ubs-pastel-soft);
 }
 
 .drawer-brand {
-    padding: 1.25rem 1rem 1rem;
-    border-bottom: 1px solid var(--sp-border);
+    padding: 1.35rem 1rem 1.1rem;
+    background: var(--ubs-white);
+    border-bottom: 1px solid var(--ubs-border);
+    border-left: none;
+    box-shadow: none;
 }
 
 .drawer-brand-title {
     display: block;
     margin: 0;
     font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--sp-primary);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--sp-text);
 }
 
 .drawer-brand-subtitle {
     display: block;
-    margin-top: 0.25rem;
+    margin-top: 0.3rem;
     color: var(--sp-text-subtle);
     font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .drawer-footer {
@@ -132,6 +244,7 @@ vaadin-app-layout.app-shell::part(drawer) {
     font-size: 0.72rem;
     padding: 1rem;
     border-top: 1px solid var(--sp-border);
+    background: var(--sp-bg-surface);
 }
 
 .app-shell vaadin-side-nav {
@@ -140,20 +253,22 @@ vaadin-app-layout.app-shell::part(drawer) {
 
 .app-shell vaadin-side-nav-item::part(link) {
     border-radius: var(--lumo-border-radius-m);
-    margin: 0.1rem 0;
+    margin: 0.15rem 0;
     color: var(--sp-text-muted);
     font-weight: 500;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .app-shell vaadin-side-nav-item[current]::part(link) {
-    background: var(--sp-primary-soft);
-    color: var(--sp-primary);
-    font-weight: 600;
+    background: var(--ubs-pastel-soft);
+    color: var(--sp-text);
+    font-weight: 500;
+    box-shadow: none;
+    border-left: 2px solid var(--ubs-red);
 }
 
 .app-shell vaadin-side-nav-item:hover::part(link) {
-    background: var(--sp-bg-subtle);
+    background: var(--ubs-surface-raised);
     color: var(--sp-text);
 }
 
@@ -170,9 +285,9 @@ vaadin-app-layout.app-shell::part(drawer) {
 }
 
 .page-header {
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--sp-border);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--ubs-border);
 }
 
 .page-header-top {
@@ -187,19 +302,19 @@ vaadin-app-layout.app-shell::part(drawer) {
     display: inline-block;
     margin-bottom: 0.35rem;
     font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--sp-text-subtle);
+    color: var(--ubs-red);
 }
 
 .page-title {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 500;
     letter-spacing: -0.01em;
     line-height: 1.3;
-    color: var(--sp-primary);
+    color: var(--sp-text);
 }
 
 .page-subtitle {
@@ -212,9 +327,9 @@ vaadin-app-layout.app-shell::part(drawer) {
 
 .glass-panel {
     background: var(--sp-bg-surface);
-    border: 1px solid var(--sp-border);
+    border: 1px solid var(--ubs-border);
     border-radius: var(--lumo-border-radius-l);
-    box-shadow: var(--lumo-box-shadow-xs);
+    box-shadow: none;
     padding: 0.75rem 1rem;
 }
 
@@ -222,20 +337,28 @@ vaadin-app-layout.app-shell::part(drawer) {
     max-width: 640px;
 }
 
+.glass-panel.hero-panel {
+    padding: 1.75rem 1.5rem;
+    margin-bottom: 1.25rem;
+    background: var(--ubs-pastel-soft);
+    border: 1px solid var(--ubs-border);
+    border-left: 3px solid var(--ubs-red);
+    box-shadow: none;
+    color: var(--sp-text);
+}
+
 .hero-panel {
     padding: 1.75rem 1.5rem;
     margin-bottom: 1.25rem;
-    background: linear-gradient(180deg, var(--sp-bg-surface) 0%, var(--sp-bg-subtle) 100%);
-    border-left: 4px solid var(--sp-primary);
 }
 
 .hero-title {
     margin: 0;
     font-size: clamp(1.65rem, 3vw, 2.1rem);
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    color: var(--sp-primary);
+    color: var(--sp-text);
 }
 
 .hero-subtitle {
@@ -256,23 +379,30 @@ vaadin-app-layout.app-shell::part(drawer) {
     display: block;
     padding: 1.15rem 1.2rem;
     border-radius: var(--lumo-border-radius-l);
-    border: 1px solid var(--sp-border);
+    border: 1px solid var(--ubs-border);
+    border-top: 1px solid var(--ubs-pastel);
     background: var(--sp-bg-surface);
     text-decoration: none;
     color: inherit;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .feature-card:hover {
-    border-color: var(--sp-border-strong);
-    box-shadow: var(--lumo-box-shadow-s);
+    border-top-color: var(--ubs-red);
+    border-color: var(--ubs-red-hover);
+    box-shadow: var(--lumo-box-shadow-m);
+    transform: translateY(-1px);
+}
+
+.feature-card:hover .feature-card-title {
+    color: var(--ubs-red);
 }
 
 .feature-card-title {
     display: block;
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 0.35rem;
-    color: var(--sp-primary);
+    color: var(--sp-text);
 }
 
 .feature-card-text {
@@ -294,18 +424,27 @@ vaadin-app-layout.app-shell::part(drawer) {
 
 .blotter-section h3 {
     margin: 0 0 0.75rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
+    padding-bottom: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--sp-text-muted);
+    color: var(--ubs-black);
+    background: var(--ubs-surface-raised);
+    margin-left: -1rem;
+    margin-right: -1rem;
+    margin-top: -1rem;
+    padding: 0.65rem 1rem;
+    border-radius: var(--lumo-border-radius-l) var(--lumo-border-radius-l) 0 0;
+    border-bottom: 1px solid var(--ubs-border);
 }
 
 .blotter-section vaadin-grid {
     border-top: 1px solid var(--sp-border);
     --vaadin-grid-cell-background: transparent;
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
     font-size: 0.8rem;
+    font-weight: 300;
 }
 
 .blotter-status-badge {
@@ -313,9 +452,9 @@ vaadin-app-layout.app-shell::part(drawer) {
     align-items: center;
     padding: 0.15rem 0.5rem;
     border-radius: var(--lumo-border-radius-m);
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.03em;
     border: 1px solid transparent;
 }
@@ -329,25 +468,69 @@ vaadin-app-layout.app-shell::part(drawer) {
 .blotter-status-badge[data-status="ACTIVE"] {
     background: var(--sp-success-soft);
     color: var(--sp-success);
-    border-color: hsla(152, 45%, 32%, 0.2);
+    border-color: var(--sp-success-alpha-20);
 }
 
 .blotter-status-badge[data-status="SUBMITTED"] {
-    background: var(--sp-primary-soft);
-    color: var(--sp-accent);
-    border-color: hsla(213, 70%, 42%, 0.2);
+    background: var(--sp-accent-alpha-10);
+    color: var(--ubs-red);
+    border-color: var(--sp-accent-alpha-20);
 }
 
-/* Components */
-vaadin-button[theme~='primary'] {
-    background: var(--sp-accent);
-    border: 1px solid var(--sp-accent);
+/* Buttons — ubs.com actionbutton__color--solidred */
+vaadin-button {
+    --vaadin-button-border-radius: 2px;
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
+    font-weight: 700;
+}
+
+vaadin-button[theme~='primary']:not([theme~='error']) {
+    background: var(--ubs-red);
+    border: 1px solid transparent;
+    color: #fafafa;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    min-height: 2.5rem;
+    padding-left: 1.375rem;
+    padding-right: 1.375rem;
+    box-shadow: none;
+}
+
+vaadin-button[theme~='primary']:not([theme~='error']):hover {
+    background: var(--ubs-red-hover);
+    border-color: transparent;
+    box-shadow: none;
+}
+
+vaadin-button[theme~='primary']:not([theme~='error']):active {
+    background: var(--ubs-red-dark);
+}
+
+vaadin-button[theme~='tertiary'] {
+    color: var(--ubs-text-strong);
     font-weight: 600;
 }
 
-vaadin-button[theme~='primary']:hover {
-    background: var(--sp-primary-hover);
-    border-color: var(--sp-primary-hover);
+vaadin-button[theme~='tertiary']:hover {
+    background: var(--ubs-chrome);
+}
+
+vaadin-button[theme~='error']:not([theme~='primary']) {
+    color: var(--ubs-error);
+    background: transparent;
+    border-color: transparent;
+}
+
+vaadin-button[theme~='error'][theme~='primary'] {
+    background: var(--ubs-red-dark);
+    border: 1px solid transparent;
+    color: #fafafa;
+    box-shadow: none;
+}
+
+vaadin-button[theme~='error'][theme~='primary']:hover {
+    background: var(--ubs-chrome-mid);
+    border-color: transparent;
 }
 
 vaadin-text-field,
@@ -365,18 +548,19 @@ vaadin-text-field:focus-within,
 vaadin-number-field:focus-within,
 vaadin-integer-field:focus-within,
 vaadin-combo-box:focus-within {
-    --vaadin-input-field-border-color: var(--sp-accent);
-    box-shadow: 0 0 0 2px hsla(213, 70%, 42%, 0.12);
+    --vaadin-input-field-border-color: var(--ubs-red-border);
+    box-shadow: 0 0 0 2px var(--ubs-red-alpha-12);
 }
 
 vaadin-grid::part(header-cell) {
-    background: var(--sp-bg-subtle);
-    color: var(--sp-text-muted);
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    background: var(--ubs-surface-raised);
+    color: var(--ubs-black);
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    border-bottom: 1px solid var(--ubs-border);
 }
 
 vaadin-dialog-overlay::part(content) {
@@ -401,7 +585,9 @@ vaadin-notification-card::part(content) {
 
 vaadin-grid {
     --vaadin-grid-cell-padding: 0.35rem 0.5rem;
+    font-family: Frutiger, Arial, Helvetica, sans-serif;
     font-size: 0.8rem;
+    font-weight: 300;
 }
 
 @media (max-width: 800px) {
@@ -496,10 +682,19 @@ vaadin-grid {
 
 .template-fixed-values-section-title {
     margin: 0 0 0.45rem;
+    padding-bottom: 0.35rem;
     font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--sp-primary);
-    letter-spacing: 0.01em;
+    font-weight: 500;
+    color: var(--ubs-black);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--ubs-surface-raised);
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    margin-top: -0.6rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--ubs-border);
+    border-radius: var(--lumo-border-radius-m) var(--lumo-border-radius-m) 0 0;
 }
 
 .template-fixed-values-initial-setup-row {
@@ -720,9 +915,9 @@ vaadin-grid {
 }
 
 .template-field-badge[data-requirement="mandatory"] {
-    background: var(--sp-primary-soft);
-    color: var(--sp-accent);
-    border-color: hsla(213, 70%, 42%, 0.2);
+    background: var(--sp-accent-alpha-10);
+    color: var(--ubs-red);
+    border-color: var(--sp-accent-alpha-20);
 }
 
 .template-field-placeholder {

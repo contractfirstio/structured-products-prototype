@@ -27,8 +27,15 @@ class TemplateFixedValuesForm(
         setWidthFull()
         setSpacing(false)
 
-        val apcCodeField = fields.find { it.key == APC_CODE_KEY }
-        val fieldsForCategories = fields.filter { it.key != APC_CODE_KEY }
+        val identifiersPanelFields =
+            listOfNotNull(
+                fields.find { it.key == APC_CODE_KEY },
+                fields.find { it.key == PIP_ID_KEY },
+            )
+        val fieldsForCategories =
+            fields.filter { field ->
+                field.key != APC_CODE_KEY && field.key != PIP_ID_KEY
+            }
 
         val fieldsByCategory =
             categories.mapNotNull { category ->
@@ -40,7 +47,7 @@ class TemplateFixedValuesForm(
                 if (categoryFields.isEmpty()) null else category to categoryFields
             }
 
-        if (fieldsByCategory.isEmpty() && apcCodeField == null) {
+        if (fieldsByCategory.isEmpty() && identifiersPanelFields.isEmpty()) {
             add(
                 Span("No fixed value fields match your search.").apply {
                     addClassName("template-empty-state")
@@ -49,25 +56,25 @@ class TemplateFixedValuesForm(
         } else {
             fieldsByCategory.forEach { (category, categoryFields) ->
                 if (category == StandardFieldCatalog.CATEGORY_INITIAL_SETUP) {
-                    add(buildInitialSetupRow(categoryFields, apcCodeField))
+                    add(buildInitialSetupRow(categoryFields, identifiersPanelFields))
                 } else {
                     add(buildCategorySection(category, categoryFields))
                 }
             }
             if (
-                apcCodeField != null &&
+                identifiersPanelFields.isNotEmpty() &&
                     fieldsByCategory.none { it.first == StandardFieldCatalog.CATEGORY_INITIAL_SETUP }
             ) {
-                add(buildApcCodePanel(apcCodeField))
+                add(buildIdentifiersPanel(identifiersPanelFields))
             }
         }
     }
 
     private fun buildInitialSetupRow(
         setupFields: List<CatalogFieldDefinition>,
-        apcCodeField: CatalogFieldDefinition?,
+        identifiersPanelFields: List<CatalogFieldDefinition>,
     ): VaadinComponent =
-        if (apcCodeField == null) {
+        if (identifiersPanelFields.isEmpty()) {
             buildCategorySection(StandardFieldCatalog.CATEGORY_INITIAL_SETUP, setupFields)
         } else {
             HorizontalLayout().apply {
@@ -82,16 +89,19 @@ class TemplateFixedValuesForm(
                         style.set("flex", "1 1 20rem")
                         style.set("min-width", "0")
                     },
-                    buildApcCodePanel(apcCodeField),
+                    buildIdentifiersPanel(identifiersPanelFields),
                 )
             }
         }
 
-    private fun buildApcCodePanel(apcCodeField: CatalogFieldDefinition): Div =
+    private fun buildIdentifiersPanel(panelFields: List<CatalogFieldDefinition>): Div =
         Div().apply {
             addClassName("template-fixed-values-section")
             addClassName("template-fixed-values-apc-panel")
-            add(buildCategoryForm(listOf(apcCodeField)))
+            add(H3(StandardFieldCatalog.CATEGORY_IDENTIFIERS_AND_REGULATORY).apply {
+                addClassName("template-fixed-values-section-title")
+            })
+            add(buildCategoryForm(panelFields))
         }
 
     private fun buildCategorySection(
@@ -235,6 +245,7 @@ class TemplateFixedValuesForm(
 
     private companion object {
         const val APC_CODE_KEY = "apc_code"
+        const val PIP_ID_KEY = "pip_id"
         const val EFFECTIVE_FROM_KEY = "effective_from"
         const val EFFECTIVE_TO_KEY = "effective_to"
     }

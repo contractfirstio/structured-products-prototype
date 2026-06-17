@@ -14,7 +14,7 @@ class HomeView : VerticalLayout() {
         val shell = UiComponents.pageShell()
         shell.add(
             UiComponents.heroPanel(
-                title = "Structured Products",
+                title = "Thebes",
                 subtitle = "Product Template → Product → Order. Configure templates, then capture product data.",
             ),
             Div().apply {

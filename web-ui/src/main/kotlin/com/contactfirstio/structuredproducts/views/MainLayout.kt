@@ -28,8 +28,8 @@ class MainLayout : AppLayout() {
         Header().apply {
             addClassName("drawer-brand")
             add(
-                Span("Structured Products").apply { addClassName("drawer-brand-title") },
-                Span("Trading platform").apply { addClassName("drawer-brand-subtitle") },
+                Span("Thebes").apply { addClassName("drawer-brand-title") },
+                Span("Structured products").apply { addClassName("drawer-brand-subtitle") },
             )
         }
 
@@ -50,7 +50,7 @@ class MainLayout : AppLayout() {
 
     private fun createNavbar(): HorizontalLayout {
         val toggle = DrawerToggle()
-        val title = Span("Structured Products Platform")
+        val title = Span("Thebes")
         title.addClassName("app-navbar-title")
 
         val badge = Span("Demo Environment")
