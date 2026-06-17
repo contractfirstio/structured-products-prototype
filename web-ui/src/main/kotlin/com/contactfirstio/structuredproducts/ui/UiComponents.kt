@@ -22,27 +22,38 @@ object UiComponents {
         }
 
     fun pageHeader(
-        eyebrow: String,
         title: String,
-        subtitle: String,
         vararg actions: Component,
+        eyebrow: String? = null,
+        subtitle: String? = null,
     ): VerticalLayout =
         VerticalLayout().apply {
             addClassName("page-header")
             isPadding = false
             isSpacing = false
 
-            add(Span(eyebrow).apply { addClassName("page-eyebrow") })
-            add(H2(title).apply { addClassName("page-title") })
-            add(Paragraph(subtitle).apply { addClassName("page-subtitle") })
+            if (eyebrow != null) {
+                add(Span(eyebrow).apply { addClassName("page-eyebrow") })
+            }
 
+            val titleHeading = H2(title).apply { addClassName("page-title") }
             if (actions.isNotEmpty()) {
                 add(
-                    HorizontalLayout(*actions).apply {
+                    HorizontalLayout(titleHeading, HorizontalLayout(*actions).apply {
                         addClassName("sp-actions-row")
                         isPadding = false
+                    }).apply {
+                        addClassName("page-header-top")
+                        isPadding = false
+                        expand(titleHeading)
                     },
                 )
+            } else {
+                add(titleHeading)
+            }
+
+            if (subtitle != null) {
+                add(Paragraph(subtitle).apply { addClassName("page-subtitle") })
             }
         }
 

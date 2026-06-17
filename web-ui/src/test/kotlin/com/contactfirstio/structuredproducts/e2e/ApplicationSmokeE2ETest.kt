@@ -12,7 +12,7 @@ class ApplicationSmokeE2ETest : BaseE2ETest() {
         withPage("/") { page ->
             assertThat(page.locator("vaadin-app-layout")).isVisible()
             assertThat(page.getByText("Structured Products Platform")).isVisible()
-            assertThat(page.getByText("Structured products management")).isVisible()
+            assertThat(page.getByText("Configure templates, then capture product data.")).isVisible()
         }
     }
 }

@@ -3,6 +3,7 @@ package com.contactfirstio.structuredproducts.e2e
 import com.microsoft.playwright.BrowserType
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.options.LoadState
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -42,7 +43,9 @@ abstract class BaseE2ETest {
                     .setSlowMo(if (headed) 100.0 else 0.0),
             ).use { browser ->
                 browser.newPage().use { page ->
-                    page.navigateAndWait(baseUrl(), path)
+                    page.navigate("${baseUrl()}$path")
+                    page.waitForLoadState(LoadState.DOMCONTENTLOADED)
+                    page.locator("vaadin-app-layout").waitFor()
                     action.accept(page)
                 }
             }

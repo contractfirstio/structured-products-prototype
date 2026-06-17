@@ -2,8 +2,10 @@ package com.contactfirstio.structuredproducts.data.document
 
 enum class FieldDataType {
     STRING,
+    DATE,
+    DATETIME,
     DOUBLE,
-    INTEGER,
     BOOLEAN,
-    ENUM,
+    FILE_LIST,
+    CHECKBOX_GROUP,
 }
