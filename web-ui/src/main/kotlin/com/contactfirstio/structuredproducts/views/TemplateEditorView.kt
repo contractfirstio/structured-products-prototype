@@ -5,6 +5,7 @@ import com.contactfirstio.structuredproducts.service.FieldCatalogService
 import com.contactfirstio.structuredproducts.service.ProductTemplateService
 import com.contactfirstio.structuredproducts.service.SaveProductTemplateCommand
 import com.contactfirstio.structuredproducts.service.ValidationException
+import com.contactfirstio.structuredproducts.ui.CaCaaDeclarationQuestionsPanel
 import com.contactfirstio.structuredproducts.ui.CommonFieldsPanel
 import com.contactfirstio.structuredproducts.ui.StandardFieldsPanel
 import com.contactfirstio.structuredproducts.ui.TemplateDefaultFieldFactory
@@ -68,8 +69,10 @@ class TemplateEditorView(
 
     private lateinit var standardFieldsPanel: StandardFieldsPanel
     private lateinit var commonFieldsPanel: CommonFieldsPanel
+    private lateinit var caCaaPanel: CaCaaDeclarationQuestionsPanel
     private lateinit var standardTabContent: VerticalLayout
     private lateinit var commonTabContent: VerticalLayout
+    private lateinit var caCaaTabContent: VerticalLayout
     private lateinit var tabs: Tabs
 
     init {
@@ -112,10 +115,10 @@ class TemplateEditorView(
                 fieldCatalogService,
                 templateDefaultFieldFactory,
                 standardDefaults,
-                caCaaDeclarationQuestions,
                 templateId,
             )
         commonFieldsPanel = CommonFieldsPanel(fieldCatalogService, includedCommonKeys)
+        caCaaPanel = CaCaaDeclarationQuestionsPanel(caCaaDeclarationQuestions)
 
         standardTabContent =
             VerticalLayout(standardFieldsPanel).apply {
@@ -127,21 +130,29 @@ class TemplateEditorView(
                 isPadding = false
                 setWidthFull()
             }
+        caCaaTabContent =
+            VerticalLayout(caCaaPanel).apply {
+                isPadding = false
+                setWidthFull()
+            }
 
         val standardCount = fieldCatalogService.standardFields().size
         val standardTab = Tab("Standard fields ($standardCount)")
         val commonTab = Tab("Product specific fields")
+        val caCaaTab = Tab("CA/CAA declaration")
         tabs =
-            Tabs(standardTab, commonTab).apply {
+            Tabs(standardTab, commonTab, caCaaTab).apply {
                 addThemeVariants(TabsVariant.LUMO_EQUAL_WIDTH_TABS)
                 setWidthFull()
                 addSelectedChangeListener { event ->
                     standardTabContent.isVisible = event.selectedTab == standardTab
                     commonTabContent.isVisible = event.selectedTab == commonTab
+                    caCaaTabContent.isVisible = event.selectedTab == caCaaTab
                 }
             }
 
         commonTabContent.isVisible = false
+        caCaaTabContent.isVisible = false
 
         val saveButton =
             Button("Save") { save() }.apply {
@@ -181,7 +192,7 @@ class TemplateEditorView(
         val fieldsPanel =
             UiComponents.glassPanel("template-fields-container").apply {
                 setWidthFull()
-                add(tabs, standardTabContent, commonTabContent)
+                add(tabs, standardTabContent, commonTabContent, caCaaTabContent)
             }
 
         val shell = UiComponents.pageShell(wide = true)

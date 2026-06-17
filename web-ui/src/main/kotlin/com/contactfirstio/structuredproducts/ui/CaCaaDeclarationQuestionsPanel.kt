@@ -2,8 +2,8 @@ package com.contactfirstio.structuredproducts.ui
 
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.button.ButtonVariant
-import com.vaadin.flow.component.html.H3
-import com.vaadin.flow.component.html.Span
+import com.vaadin.flow.component.html.H2
+import com.vaadin.flow.component.html.Paragraph
 import com.vaadin.flow.component.icon.VaadinIcon
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
@@ -15,10 +15,6 @@ class CaCaaDeclarationQuestionsPanel(
     private val questions: MutableList<String>,
 ) : VerticalLayout() {
 
-    private val emptyState =
-        Span("No declaration questions yet.").apply {
-            addClassName("template-empty-state")
-        }
     private val questionsLayout =
         VerticalLayout().apply {
             addClassName("template-declaration-questions")
@@ -28,41 +24,42 @@ class CaCaaDeclarationQuestionsPanel(
         }
 
     init {
-        addClassName("template-fixed-values-section")
+        addClassName("template-declaration-panel")
         isPadding = false
         setWidthFull()
         setSpacing(true)
 
         add(
-            H3(CA_CAA_CATEGORY).apply {
-                addClassName("template-fixed-values-section-title")
+            H2("CA/CAA declaration questions").apply {
+                addClassName("template-declaration-panel-title")
             },
-            emptyState,
+            Paragraph(
+                "Write the declaration questions shown when creating a product from this template.",
+            ).apply {
+                addClassName("template-panel-hint")
+            },
             questionsLayout,
             Button("Add question", VaadinIcon.PLUS.create()).apply {
-                addThemeVariants(ButtonVariant.LUMO_TERTIARY)
+                addThemeVariants(ButtonVariant.LUMO_PRIMARY)
                 addClassName("template-add-declaration-button")
                 addClickListener { addQuestion() }
             },
         )
 
-        syncEmptyState()
-        questions.forEachIndexed { index, _ ->
-            questionsLayout.add(questionRow(index))
+        if (questions.isEmpty()) {
+            addQuestion()
+        } else {
+            rebuildQuestions()
         }
     }
+
+    fun questionCount(): Int = questions.count { it.isNotBlank() }
 
     private fun addQuestion() {
         val index = questions.size
         questions.add("")
         questionsLayout.add(questionRow(index))
-        syncEmptyState()
         focusQuestion(index)
-    }
-
-    private fun syncEmptyState() {
-        emptyState.isVisible = questions.isEmpty()
-        questionsLayout.isVisible = questions.isNotEmpty()
     }
 
     private fun focusQuestion(index: Int) {
@@ -87,9 +84,10 @@ class CaCaaDeclarationQuestionsPanel(
             val questionField =
                 TextArea().apply {
                     addClassName("template-form-editor")
+                    label = "Question ${index + 1}"
                     placeholder = "Enter declaration question"
                     width = "100%"
-                    minHeight = "3.25rem"
+                    minHeight = "4rem"
                     value = questions.getOrElse(index) { "" }
                     valueChangeMode = ValueChangeMode.EAGER
                     addValueChangeListener { event ->
@@ -105,6 +103,11 @@ class CaCaaDeclarationQuestionsPanel(
                     addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR)
                     element.setAttribute("aria-label", "Remove question ${index + 1}")
                     addClickListener {
+                        if (questions.size <= 1) {
+                            questions[0] = ""
+                            questionField.clear()
+                            return@addClickListener
+                        }
                         questions.removeAt(index)
                         rebuildQuestions()
                     }
@@ -117,7 +120,6 @@ class CaCaaDeclarationQuestionsPanel(
         questions.indices.forEach { index ->
             questionsLayout.add(questionRow(index))
         }
-        syncEmptyState()
     }
 
     companion object {
