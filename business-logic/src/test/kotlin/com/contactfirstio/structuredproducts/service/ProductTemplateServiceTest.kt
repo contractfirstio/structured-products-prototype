@@ -83,6 +83,20 @@ class ProductTemplateServiceTest {
     }
 
     @Test
+    fun `rejects fixed values on system managed creation timestamp`() {
+        val exception =
+            assertThrows(ValidationException::class.java) {
+                productTemplateService.create(
+                    SaveProductTemplateCommand(
+                        name = "Invalid",
+                        standardFieldDefaults = mapOf("creation_timestamp" to "2026-01-01T00:00:00"),
+                    ),
+                )
+            }
+        assertEquals("Creation Timestamp is set by the system", exception.message)
+    }
+
+    @Test
     fun `rejects fixed values on system managed standard fields`() {
         val exception =
             assertThrows(ValidationException::class.java) {

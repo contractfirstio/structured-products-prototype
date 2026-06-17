@@ -1,30 +1,24 @@
 package com.contactfirstio.structuredproducts.ui
 
 import com.contactfirstio.structuredproducts.catalog.CatalogFieldDefinition
+import com.contactfirstio.structuredproducts.catalog.StandardFieldCatalog
 import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.data.document.FieldRequirement
-import com.vaadin.flow.component.button.Button
-import com.vaadin.flow.component.button.ButtonVariant
+import com.vaadin.flow.component.Component as VaadinComponent
 import com.vaadin.flow.component.formlayout.FormLayout
 import com.vaadin.flow.component.html.Div
 import com.vaadin.flow.component.html.H3
 import com.vaadin.flow.component.html.Span
-import com.vaadin.flow.component.icon.VaadinIcon
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
-import com.vaadin.flow.component.textfield.TextArea
-import com.vaadin.flow.data.value.ValueChangeMode
 
 class TemplateFixedValuesForm(
     categories: List<String>,
     fields: List<CatalogFieldDefinition>,
-    searchQuery: String,
     private val editorFactory: TemplateDefaultFieldFactory,
     private val defaults: MutableMap<String, String>,
-    private val caCaaDeclarationQuestions: MutableList<String>,
     private val templateId: String?,
-    private val onStructureChange: () -> Unit,
 ) : VerticalLayout() {
 
     init {
@@ -33,16 +27,20 @@ class TemplateFixedValuesForm(
         setWidthFull()
         setSpacing(false)
 
+        val apcCodeField = fields.find { it.key == APC_CODE_KEY }
+        val fieldsForCategories = fields.filter { it.key != APC_CODE_KEY }
+
         val fieldsByCategory =
             categories.mapNotNull { category ->
-                val categoryFields = fields.filter { it.category == category }
+                val categoryFields =
+                    sortFieldsForCategory(
+                        category,
+                        fieldsForCategories.filter { it.category == category },
+                    )
                 if (categoryFields.isEmpty()) null else category to categoryFields
             }
 
-        val showCaCaa = matchesCaCaaSearch(searchQuery)
-        val visibleQuestions = visibleCaCaaQuestionIndices(searchQuery)
-
-        if (fieldsByCategory.isEmpty() && (!showCaCaa || visibleQuestions.isEmpty())) {
+        if (fieldsByCategory.isEmpty() && apcCodeField == null) {
             add(
                 Span("No fixed value fields match your search.").apply {
                     addClassName("template-empty-state")
@@ -50,14 +48,51 @@ class TemplateFixedValuesForm(
             )
         } else {
             fieldsByCategory.forEach { (category, categoryFields) ->
-                add(buildCategorySection(category, categoryFields))
+                if (category == StandardFieldCatalog.CATEGORY_INITIAL_SETUP) {
+                    add(buildInitialSetupRow(categoryFields, apcCodeField))
+                } else {
+                    add(buildCategorySection(category, categoryFields))
+                }
             }
-
-            if (showCaCaa) {
-                add(buildCaCaaSection(visibleQuestions))
+            if (
+                apcCodeField != null &&
+                    fieldsByCategory.none { it.first == StandardFieldCatalog.CATEGORY_INITIAL_SETUP }
+            ) {
+                add(buildApcCodePanel(apcCodeField))
             }
         }
     }
+
+    private fun buildInitialSetupRow(
+        setupFields: List<CatalogFieldDefinition>,
+        apcCodeField: CatalogFieldDefinition?,
+    ): VaadinComponent =
+        if (apcCodeField == null) {
+            buildCategorySection(StandardFieldCatalog.CATEGORY_INITIAL_SETUP, setupFields)
+        } else {
+            HorizontalLayout().apply {
+                addClassName("template-fixed-values-initial-setup-row")
+                setWidthFull()
+                isPadding = false
+                setSpacing(true)
+                setDefaultVerticalComponentAlignment(FlexComponent.Alignment.STRETCH)
+
+                add(
+                    buildCategorySection(StandardFieldCatalog.CATEGORY_INITIAL_SETUP, setupFields).apply {
+                        style.set("flex", "1 1 20rem")
+                        style.set("min-width", "0")
+                    },
+                    buildApcCodePanel(apcCodeField),
+                )
+            }
+        }
+
+    private fun buildApcCodePanel(apcCodeField: CatalogFieldDefinition): Div =
+        Div().apply {
+            addClassName("template-fixed-values-section")
+            addClassName("template-fixed-values-apc-panel")
+            add(buildCategoryForm(listOf(apcCodeField)))
+        }
 
     private fun buildCategorySection(
         category: String,
@@ -79,99 +114,93 @@ class TemplateFixedValuesForm(
                 FormLayout.ResponsiveStep("60rem", 3),
             )
 
-            categoryFields.forEach { field ->
-                val editor =
-                    editorFactory.createEditor(
-                        field = field,
-                        currentValue = defaults[field.key],
-                        templateId = templateId,
-                        onValueChange = { newValue ->
-                            if (newValue.isNullOrBlank()) {
-                                defaults.remove(field.key)
-                            } else {
-                                defaults[field.key] = newValue
-                            }
-                        },
-                        formLayout = true,
-                    )
-                addFormItem(editor, fieldLabel(field))
-                setColspan(editor, fieldColspan(field))
+            layoutCategoryFields(categoryFields).forEach { entry ->
+                when (entry) {
+                    is CategoryFormEntry.Single -> addField(this, entry.field)
+                    is CategoryFormEntry.EffectiveDatePair ->
+                        addEffectiveDatePair(this, entry.from, entry.to)
+                }
             }
         }
 
-    private fun buildCaCaaSection(visibleQuestionIndices: List<Int>): Div =
-        Div().apply {
-            addClassName("template-fixed-values-section")
-            add(
-                H3(CA_CAA_CATEGORY).apply {
-                    addClassName("template-fixed-values-section-title")
-                },
-            )
+    private fun layoutCategoryFields(
+        categoryFields: List<CatalogFieldDefinition>,
+    ): List<CategoryFormEntry> {
+        val hasEffectiveFrom = categoryFields.any { it.key == EFFECTIVE_FROM_KEY }
+        val hasEffectiveTo = categoryFields.any { it.key == EFFECTIVE_TO_KEY }
+        val pairEffectiveDates = hasEffectiveFrom && hasEffectiveTo
 
-            val questionsLayout =
-                VerticalLayout().apply {
-                    addClassName("template-declaration-questions")
-                    isPadding = false
-                    setWidthFull()
-                    setSpacing(true)
+        return categoryFields.mapNotNull { field ->
+            when {
+                pairEffectiveDates && field.key == EFFECTIVE_TO_KEY -> null
+                pairEffectiveDates && field.key == EFFECTIVE_FROM_KEY -> {
+                    val toField = categoryFields.first { it.key == EFFECTIVE_TO_KEY }
+                    CategoryFormEntry.EffectiveDatePair(field, toField)
                 }
-
-            if (visibleQuestionIndices.isEmpty()) {
-                questionsLayout.add(
-                    Span("No declaration questions added yet.").apply {
-                        addClassName("template-field-placeholder")
-                    },
-                )
-            } else {
-                visibleQuestionIndices.forEach { index ->
-                    questionsLayout.add(declarationQuestionRow(index))
-                }
+                else -> CategoryFormEntry.Single(field)
             }
-
-            add(questionsLayout)
-            add(
-                Button("Add declaration question", VaadinIcon.PLUS.create()) {
-                    caCaaDeclarationQuestions.add("")
-                    onStructureChange()
-                }.apply {
-                    addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE)
-                    addClassName("template-add-declaration-button")
-                },
-            )
         }
+    }
 
-    private fun declarationQuestionRow(index: Int): HorizontalLayout =
-        HorizontalLayout().apply {
-            addClassName("template-declaration-question-editor")
+    private fun addField(
+        form: FormLayout,
+        field: CatalogFieldDefinition,
+    ) {
+        val editor = createFieldEditor(field)
+        form.addFormItem(editor, fieldLabel(field))
+        form.setColspan(editor, fieldColspan(field))
+    }
+
+    private fun addEffectiveDatePair(
+        form: FormLayout,
+        fromField: CatalogFieldDefinition,
+        toField: CatalogFieldDefinition,
+    ) {
+        val row = buildEffectiveDatePair(fromField, toField)
+        form.addFormItem(row, Span().apply { isVisible = false })
+        form.setColspan(row, 3)
+    }
+
+    private fun buildEffectiveDatePair(
+        fromField: CatalogFieldDefinition,
+        toField: CatalogFieldDefinition,
+    ): HorizontalLayout {
+        val fromColumn = buildLabeledField(fromField)
+        val toColumn = buildLabeledField(toField)
+        return HorizontalLayout(fromColumn, toColumn).apply {
+            addClassName("template-effective-date-row")
             setWidthFull()
             isPadding = false
-            setDefaultVerticalComponentAlignment(FlexComponent.Alignment.START)
+            setSpacing(true)
+            setFlexGrow(1.0, fromColumn, toColumn)
+        }
+    }
 
-            val questionField =
-                TextArea().apply {
-                    addClassName("template-form-editor")
-                    placeholder = "Enter declaration question"
-                    width = "100%"
-                    minHeight = "3.25rem"
-                    value = caCaaDeclarationQuestions.getOrElse(index) { "" }
-                    valueChangeMode = ValueChangeMode.EAGER
-                    addValueChangeListener { event ->
-                        caCaaDeclarationQuestions[index] = event.value.orEmpty()
-                    }
-                }
-            add(questionField)
-            expand(questionField)
-
+    private fun buildLabeledField(field: CatalogFieldDefinition): VerticalLayout =
+        VerticalLayout().apply {
+            isPadding = false
+            setSpacing(false)
+            style.set("min-width", "0")
             add(
-                Button(VaadinIcon.TRASH.create()) {
-                    caCaaDeclarationQuestions.removeAt(index)
-                    onStructureChange()
-                }.apply {
-                    addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ERROR)
-                    element.setAttribute("aria-label", "Remove question ${index + 1}")
-                },
+                Span(fieldLabel(field)).apply { addClassName("template-form-field-label") },
+                createFieldEditor(field),
             )
         }
+
+    private fun createFieldEditor(field: CatalogFieldDefinition): VaadinComponent =
+        editorFactory.createEditor(
+            field = field,
+            currentValue = defaults[field.key],
+            templateId = templateId,
+            onValueChange = { newValue ->
+                if (newValue.isNullOrBlank()) {
+                    defaults.remove(field.key)
+                } else {
+                    defaults[field.key] = newValue
+                }
+            },
+            formLayout = true,
+        )
 
     private fun fieldLabel(field: CatalogFieldDefinition): String =
         if (field.requirement == FieldRequirement.MANDATORY) {
@@ -189,32 +218,33 @@ class TemplateFixedValuesForm(
             else -> 1
         }
 
-    private fun visibleCaCaaQuestionIndices(searchQuery: String): List<Int> {
-        if (!matchesCaCaaSearch(searchQuery)) return emptyList()
+    private fun sortFieldsForCategory(
+        category: String,
+        categoryFields: List<CatalogFieldDefinition>,
+    ): List<CatalogFieldDefinition> {
+        if (category != StandardFieldCatalog.CATEGORY_PRODUCT_LIFECYCLE) {
+            return categoryFields
+        }
 
-        val query = searchQuery.lowercase()
-        val showAllQuestions =
-            searchQuery.isBlank() ||
-                CA_CAA_CATEGORY.lowercase().contains(query) ||
-                query.contains("caa") ||
-                query.contains("declaration")
-
-        return caCaaDeclarationQuestions.indices.filter { index ->
-            val question = caCaaDeclarationQuestions[index]
-            showAllQuestions || question.lowercase().contains(query)
+        val order = StandardFieldCatalog.productLifecycleFixedValueFieldOrder
+        return categoryFields.sortedBy { field ->
+            val index = order.indexOf(field.key)
+            if (index == -1) Int.MAX_VALUE else index
         }
     }
 
-    private fun matchesCaCaaSearch(searchQuery: String): Boolean {
-        if (searchQuery.isBlank()) return true
-        val query = searchQuery.lowercase()
-        return CA_CAA_CATEGORY.lowercase().contains(query) ||
-            query.contains("caa") ||
-            query.contains("declaration") ||
-            caCaaDeclarationQuestions.any { it.lowercase().contains(query) }
+    private companion object {
+        const val APC_CODE_KEY = "apc_code"
+        const val EFFECTIVE_FROM_KEY = "effective_from"
+        const val EFFECTIVE_TO_KEY = "effective_to"
     }
 
-    companion object {
-        const val CA_CAA_CATEGORY = "CA/CAA Declaration"
+    private sealed interface CategoryFormEntry {
+        data class Single(val field: CatalogFieldDefinition) : CategoryFormEntry
+
+        data class EffectiveDatePair(
+            val from: CatalogFieldDefinition,
+            val to: CatalogFieldDefinition,
+        ) : CategoryFormEntry
     }
 }

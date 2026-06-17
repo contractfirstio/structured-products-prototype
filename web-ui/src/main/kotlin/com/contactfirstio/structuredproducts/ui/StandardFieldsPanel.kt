@@ -34,7 +34,7 @@ class StandardFieldsPanel(
             placeholder = "Search fields..."
             prefixComponent = com.vaadin.flow.component.icon.VaadinIcon.SEARCH.create()
             isClearButtonVisible = true
-            valueChangeMode = ValueChangeMode.EAGER
+            valueChangeMode = ValueChangeMode.LAZY
         }
     private val categoryFilter =
         ComboBox<String>().apply {
@@ -56,6 +56,7 @@ class StandardFieldsPanel(
         addClassName("template-fields-content")
         setWidthFull()
     }
+    private val caCaaPanel = CaCaaDeclarationQuestionsPanel(caCaaDeclarationQuestions)
 
     private val grid =
         Grid<CatalogFieldDefinition>().apply {
@@ -117,7 +118,7 @@ class StandardFieldsPanel(
         searchField.addValueChangeListener { applyFilters() }
         categoryFilter.addValueChangeListener { applyFilters() }
 
-        add(hint, toolbar, content)
+        add(hint, toolbar, caCaaPanel, content)
         applyFilters()
     }
 
@@ -135,12 +136,9 @@ class StandardFieldsPanel(
         val fixedValuesOnly = fixedValuesOnlyFilter.value
 
         categoryFilter.isVisible = !fixedValuesOnly
-        hint.text =
-            if (fixedValuesOnly) {
-                "Set fixed values and CA/CAA declaration questions that will be locked on every product created from this template."
-            } else {
-                "All standard fields are included. Template values set here are applied when creating a product."
-            }
+        hint.isVisible = !fixedValuesOnly
+        hint.text = "All standard fields are included. Template values set here are applied when creating a product."
+        caCaaPanel.isVisible = fixedValuesOnly
 
         val filtered =
             allFields.filter { field ->
@@ -163,12 +161,9 @@ class StandardFieldsPanel(
                 TemplateFixedValuesForm(
                     categories = categoryOrder,
                     fields = filtered,
-                    searchQuery = query,
                     editorFactory = templateDefaultFieldFactory,
                     defaults = defaults,
-                    caCaaDeclarationQuestions = caCaaDeclarationQuestions,
                     templateId = templateId,
-                    onStructureChange = { applyFilters() },
                 ),
             )
         } else {

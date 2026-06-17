@@ -12,6 +12,7 @@ import com.vaadin.flow.component.datepicker.DatePicker
 import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup
 import com.vaadin.flow.component.textfield.NumberField
+import com.vaadin.flow.component.textfield.TextArea
 import com.vaadin.flow.component.textfield.TextField
 import org.springframework.stereotype.Component
 import java.time.LocalDate
@@ -131,6 +132,20 @@ class TemplateDefaultFieldFactory(
                         onValueChange(
                             if (event.value == null || isEmpty) null else event.value.toString(),
                         )
+                    }
+                }
+
+            field.key == "pay_off" ->
+                TextArea().apply {
+                    addClassName("template-default-editor")
+                    addClassName("template-pay-off-editor")
+                    if (formLayout) addClassName("template-form-editor")
+                    placeholder = "Enter pay off description"
+                    width = "100%"
+                    minHeight = "10rem"
+                    value = currentValue.orEmpty()
+                    addValueChangeListener { event ->
+                        onValueChange(event.value?.trim()?.takeIf { it.isNotEmpty() })
                     }
                 }
 

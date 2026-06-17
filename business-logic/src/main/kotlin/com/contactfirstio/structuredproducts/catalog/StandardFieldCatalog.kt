@@ -16,6 +16,21 @@ object StandardFieldCatalog {
   const val CATEGORY_BARRIER = "Barrier"
   const val CATEGORY_COUPON = "Coupon"
 
+  /** Display order for Product Lifecycle fields in the template fixed values form. */
+  val productLifecycleFixedValueFieldOrder: List<String> =
+      listOf(
+          "available_for_reverse_enquiry",
+          "eln_family_flag",
+          "cross_price",
+          "laf_relevant",
+          "investment_amount",
+          "pay_off",
+          "brochure_link",
+          "brochure_attachments",
+          "effective_from",
+          "effective_to",
+      )
+
   val fields: List<CatalogFieldDefinition> =
       listOf(
           field(
@@ -167,7 +182,7 @@ object StandardFieldCatalog {
               displayName = "Creation Timestamp",
               dataType = FieldDataType.DATETIME,
               requirement = FieldRequirement.MANDATORY,
-              defaultedInTemplateCreation = true,
+              systemManagedAtProductCreation = true,
           ),
           field(
               key = "product_status",
