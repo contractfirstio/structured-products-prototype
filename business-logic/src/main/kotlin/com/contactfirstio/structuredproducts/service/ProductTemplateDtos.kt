@@ -11,8 +11,7 @@ data class ProductTemplateSummary(
     val standardFieldCount: Int,
     val commonFieldsSelected: Int,
     val commonFieldsTotal: Int,
-    val caCaaDeclarationQuestionsSelected: Int,
-    val caCaaDeclarationQuestionsTotal: Int,
+    val caCaaDeclarationQuestionCount: Int,
     val updatedAt: Instant,
 )
 
@@ -23,7 +22,7 @@ data class ProductTemplateDetail(
     val status: TemplateStatus,
     val standardFieldDefaults: Map<String, String>,
     val includedCommonFieldKeys: Set<String>,
-    val includedCaCaaDeclarationQuestionKeys: Set<String>,
+    val caCaaDeclarationQuestions: List<String>,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
@@ -34,5 +33,5 @@ data class SaveProductTemplateCommand(
     val status: TemplateStatus = TemplateStatus.DRAFT,
     val standardFieldDefaults: Map<String, String> = emptyMap(),
     val includedCommonFieldKeys: Set<String> = emptySet(),
-    val includedCaCaaDeclarationQuestionKeys: Set<String> = emptySet(),
+    val caCaaDeclarationQuestions: List<String> = emptyList(),
 )

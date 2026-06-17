@@ -18,6 +18,7 @@ class StandardFieldsPanel(
     private val fieldCatalogService: FieldCatalogService,
     private val templateDefaultFieldFactory: TemplateDefaultFieldFactory,
     private val defaults: MutableMap<String, String>,
+    private val caCaaDeclarationQuestions: MutableList<String>,
     private val templateId: String? = null,
 ) : VerticalLayout() {
 
@@ -136,7 +137,7 @@ class StandardFieldsPanel(
         categoryFilter.isVisible = !fixedValuesOnly
         hint.text =
             if (fixedValuesOnly) {
-                "Set the fixed values that will be locked on every product created from this template."
+                "Set fixed values and CA/CAA declaration questions that will be locked on every product created from this template."
             } else {
                 "All standard fields are included. Template values set here are applied when creating a product."
             }
@@ -162,9 +163,12 @@ class StandardFieldsPanel(
                 TemplateFixedValuesForm(
                     categories = categoryOrder,
                     fields = filtered,
+                    searchQuery = query,
                     editorFactory = templateDefaultFieldFactory,
                     defaults = defaults,
+                    caCaaDeclarationQuestions = caCaaDeclarationQuestions,
                     templateId = templateId,
+                    onStructureChange = { applyFilters() },
                 ),
             )
         } else {

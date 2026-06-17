@@ -11,7 +11,6 @@ class ProductTemplateService(
     private val productTemplateRepository: ProductTemplateRepository,
     private val fieldCatalogService: FieldCatalogService,
     private val templateAttachmentService: TemplateAttachmentService,
-    private val caCaaDeclarationCatalogService: CaCaaDeclarationCatalogService,
 ) {
 
     fun findAll(): List<ProductTemplateSummary> =
@@ -32,8 +31,7 @@ class ProductTemplateService(
                 status = command.status,
                 standardFieldDefaults = sanitizeDefaults(command.standardFieldDefaults),
                 includedCommonFieldKeys = command.includedCommonFieldKeys.toList().sorted(),
-                includedCaCaaDeclarationQuestionKeys =
-                    command.includedCaCaaDeclarationQuestionKeys.toList().sorted(),
+                caCaaDeclarationQuestions = sanitizeCaCaaQuestions(command.caCaaDeclarationQuestions),
                 createdAt = now,
                 updatedAt = now,
             )
@@ -55,8 +53,7 @@ class ProductTemplateService(
                 status = command.status,
                 standardFieldDefaults = sanitizeDefaults(command.standardFieldDefaults),
                 includedCommonFieldKeys = command.includedCommonFieldKeys.toList().sorted(),
-                includedCaCaaDeclarationQuestionKeys =
-                    command.includedCaCaaDeclarationQuestionKeys.toList().sorted(),
+                caCaaDeclarationQuestions = sanitizeCaCaaQuestions(command.caCaaDeclarationQuestions),
                 updatedAt = Instant.now(),
             )
         return productTemplateRepository.save(updated).toDetail().also {
@@ -78,7 +75,6 @@ class ProductTemplateService(
         }
         fieldCatalogService.validateTemplateDefaults(command.standardFieldDefaults)
         fieldCatalogService.validateIncludedCommonKeys(command.includedCommonFieldKeys)
-        caCaaDeclarationCatalogService.validateIncludedQuestionKeys(command.includedCaCaaDeclarationQuestionKeys)
     }
 
     private fun sanitizeDefaults(defaults: Map<String, String>): Map<String, String> =
@@ -88,6 +84,9 @@ class ProductTemplateService(
             }
             .filterValues { it.isNotBlank() }
             .mapValues { (_, value) -> value.trim() }
+
+    private fun sanitizeCaCaaQuestions(questions: List<String>): List<String> =
+        questions.map { it.trim() }.filter { it.isNotEmpty() }
 
     private fun syncTemplateAttachments(templateId: String, defaults: Map<String, String>) {
         defaults.forEach { (key, value) ->
@@ -109,8 +108,7 @@ class ProductTemplateService(
             standardFieldCount = fieldCatalogService.standardFields().size,
             commonFieldsSelected = includedCommonFieldKeys.size,
             commonFieldsTotal = fieldCatalogService.commonFields().size,
-            caCaaDeclarationQuestionsSelected = includedCaCaaDeclarationQuestionKeys.size,
-            caCaaDeclarationQuestionsTotal = caCaaDeclarationCatalogService.questions().size,
+            caCaaDeclarationQuestionCount = caCaaDeclarationQuestions.size,
             updatedAt = updatedAt,
         )
 
@@ -122,7 +120,7 @@ class ProductTemplateService(
             status = status,
             standardFieldDefaults = sanitizeDefaults(standardFieldDefaults),
             includedCommonFieldKeys = includedCommonFieldKeys.toSet(),
-            includedCaCaaDeclarationQuestionKeys = includedCaCaaDeclarationQuestionKeys.toSet(),
+            caCaaDeclarationQuestions = caCaaDeclarationQuestions,
             createdAt = createdAt,
             updatedAt = updatedAt,
         )

@@ -1,12 +1,10 @@
 package com.contactfirstio.structuredproducts.views
 
 import com.contactfirstio.structuredproducts.data.document.TemplateStatus
-import com.contactfirstio.structuredproducts.service.CaCaaDeclarationCatalogService
 import com.contactfirstio.structuredproducts.service.FieldCatalogService
 import com.contactfirstio.structuredproducts.service.ProductTemplateService
 import com.contactfirstio.structuredproducts.service.SaveProductTemplateCommand
 import com.contactfirstio.structuredproducts.service.ValidationException
-import com.contactfirstio.structuredproducts.ui.CaCaaDeclarationPanel
 import com.contactfirstio.structuredproducts.ui.CommonFieldsPanel
 import com.contactfirstio.structuredproducts.ui.StandardFieldsPanel
 import com.contactfirstio.structuredproducts.ui.TemplateDefaultFieldFactory
@@ -35,7 +33,6 @@ import java.time.format.DateTimeFormatter
 class TemplateEditorView(
     private val productTemplateService: ProductTemplateService,
     private val fieldCatalogService: FieldCatalogService,
-    private val caCaaDeclarationCatalogService: CaCaaDeclarationCatalogService,
     private val templateDefaultFieldFactory: TemplateDefaultFieldFactory,
 ) : VerticalLayout(),
     HasUrlParameter<String> {
@@ -67,14 +64,12 @@ class TemplateEditorView(
 
     private val standardDefaults = mutableMapOf<String, String>()
     private val includedCommonKeys = mutableSetOf<String>()
-    private val includedCaCaaQuestionKeys = mutableSetOf<String>()
+    private val caCaaDeclarationQuestions = mutableListOf<String>()
 
     private lateinit var standardFieldsPanel: StandardFieldsPanel
     private lateinit var commonFieldsPanel: CommonFieldsPanel
-    private lateinit var caCaaDeclarationPanel: CaCaaDeclarationPanel
     private lateinit var standardTabContent: VerticalLayout
     private lateinit var commonTabContent: VerticalLayout
-    private lateinit var caCaaTabContent: VerticalLayout
     private lateinit var tabs: Tabs
 
     init {
@@ -88,7 +83,7 @@ class TemplateEditorView(
 
         standardDefaults.clear()
         includedCommonKeys.clear()
-        includedCaCaaQuestionKeys.clear()
+        caCaaDeclarationQuestions.clear()
 
         val detail = templateId?.let { productTemplateService.findById(it) }
         if (detail == null && templateId != null) {
@@ -101,7 +96,7 @@ class TemplateEditorView(
         if (detail != null) {
             standardDefaults.putAll(detail.standardFieldDefaults)
             includedCommonKeys.addAll(detail.includedCommonFieldKeys)
-            includedCaCaaQuestionKeys.addAll(detail.includedCaCaaDeclarationQuestionKeys)
+            caCaaDeclarationQuestions.addAll(detail.caCaaDeclarationQuestions)
         } else {
             applySuggestedDefaults()
         }
@@ -112,9 +107,15 @@ class TemplateEditorView(
     private fun buildUi(detail: com.contactfirstio.structuredproducts.service.ProductTemplateDetail?) {
         removeAll()
 
-        standardFieldsPanel = StandardFieldsPanel(fieldCatalogService, templateDefaultFieldFactory, standardDefaults, templateId)
+        standardFieldsPanel =
+            StandardFieldsPanel(
+                fieldCatalogService,
+                templateDefaultFieldFactory,
+                standardDefaults,
+                caCaaDeclarationQuestions,
+                templateId,
+            )
         commonFieldsPanel = CommonFieldsPanel(fieldCatalogService, includedCommonKeys)
-        caCaaDeclarationPanel = CaCaaDeclarationPanel(caCaaDeclarationCatalogService, includedCaCaaQuestionKeys)
 
         standardTabContent =
             VerticalLayout(standardFieldsPanel).apply {
@@ -126,30 +127,21 @@ class TemplateEditorView(
                 isPadding = false
                 setWidthFull()
             }
-        caCaaTabContent =
-            VerticalLayout(caCaaDeclarationPanel).apply {
-                isPadding = false
-                setWidthFull()
-            }
 
         val standardCount = fieldCatalogService.standardFields().size
-        val declarationCount = caCaaDeclarationCatalogService.questions().size
         val standardTab = Tab("Standard fields ($standardCount)")
-        val commonTab = Tab("Common fields")
-        val caCaaTab = Tab("CA/CAA Declaration ($declarationCount)")
+        val commonTab = Tab("Product specific fields")
         tabs =
-            Tabs(standardTab, commonTab, caCaaTab).apply {
+            Tabs(standardTab, commonTab).apply {
                 addThemeVariants(TabsVariant.LUMO_EQUAL_WIDTH_TABS)
                 setWidthFull()
                 addSelectedChangeListener { event ->
                     standardTabContent.isVisible = event.selectedTab == standardTab
                     commonTabContent.isVisible = event.selectedTab == commonTab
-                    caCaaTabContent.isVisible = event.selectedTab == caCaaTab
                 }
             }
 
         commonTabContent.isVisible = false
-        caCaaTabContent.isVisible = false
 
         val saveButton =
             Button("Save") { save() }.apply {
@@ -189,7 +181,7 @@ class TemplateEditorView(
         val fieldsPanel =
             UiComponents.glassPanel("template-fields-container").apply {
                 setWidthFull()
-                add(tabs, standardTabContent, commonTabContent, caCaaTabContent)
+                add(tabs, standardTabContent, commonTabContent)
             }
 
         val shell = UiComponents.pageShell(wide = true)
@@ -244,7 +236,7 @@ class TemplateEditorView(
                 status = statusField.value ?: TemplateStatus.DRAFT,
                 standardFieldDefaults = standardDefaults.toMap(),
                 includedCommonFieldKeys = includedCommonKeys.toSet(),
-                includedCaCaaDeclarationQuestionKeys = includedCaCaaQuestionKeys.toSet(),
+                caCaaDeclarationQuestions = caCaaDeclarationQuestions.toList(),
             )
 
         try {

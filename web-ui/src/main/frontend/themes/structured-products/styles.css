@@ -483,45 +483,41 @@ vaadin-grid {
 }
 
 .template-fixed-values-form {
-    gap: 1rem;
+    min-width: 0;
+    gap: 0.5rem;
 }
 
 .template-fixed-values-section {
-    padding: 1rem 1.1rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid var(--sp-border);
-    border-radius: var(--lumo-border-radius-l);
+    border-radius: var(--lumo-border-radius-m);
     background: var(--sp-bg-surface);
-    box-shadow: var(--lumo-box-shadow-xs);
 }
 
 .template-fixed-values-section-title {
-    margin: 0 0 0.85rem;
-    font-size: 0.95rem;
+    margin: 0 0 0.45rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: var(--sp-primary);
     letter-spacing: 0.01em;
 }
 
-.template-fixed-values-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    gap: 0.85rem;
+.template-fixed-values-layout {
+    width: 100%;
+    --vaadin-form-layout-column-spacing: 0.6rem;
+    --vaadin-form-layout-row-spacing: 0.35rem;
 }
 
-.template-form-field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-    min-width: 0;
-    padding: 0.85rem 0.9rem;
-    border: 1px solid var(--sp-border);
-    border-radius: var(--lumo-border-radius-m);
-    background: var(--sp-bg-subtle);
+.template-fixed-values-layout::part(label) {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--sp-text-muted);
+    padding-bottom: 0.1rem;
 }
 
-.template-form-field-header {
-    gap: 0.5rem;
-    flex-wrap: wrap;
+.template-declaration-questions {
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
 }
 
 .template-form-field-label {
@@ -537,9 +533,23 @@ vaadin-grid {
     max-width: 100%;
 }
 
-.template-form-field .template-yes-no-radio::part(group-field) {
+.template-fixed-values-layout .template-yes-no-radio::part(group-field) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.template-fixed-values-layout .template-checkbox-group::part(group-field) {
+    flex-direction: row;
     flex-wrap: wrap;
     gap: 0.65rem;
+}
+
+.template-declaration-question-editor {
+    gap: 0.5rem;
+}
+
+.template-add-declaration-button {
+    align-self: flex-start;
 }
 
 .template-field-sections {

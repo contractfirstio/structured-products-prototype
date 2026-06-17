@@ -86,7 +86,7 @@ class FieldCatalogService(
         val knownKeys = commonFields().map { it.key }.toSet()
         val unknown = keys - knownKeys
         if (unknown.isNotEmpty()) {
-            throw ValidationException("Unknown common field keys: ${unknown.joinToString()}")
+            throw ValidationException("Unknown product specific field keys: ${unknown.joinToString()}")
         }
     }
 

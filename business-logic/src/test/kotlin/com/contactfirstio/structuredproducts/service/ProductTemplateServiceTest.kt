@@ -17,19 +17,13 @@ class ProductTemplateServiceTest {
 
     private val productTemplateRepository: ProductTemplateRepository = mock()
     private val templateAttachmentService: TemplateAttachmentService = mock()
-    private val caCaaDeclarationCatalogService = CaCaaDeclarationCatalogService()
     private val fieldCatalogService = FieldCatalogService(templateAttachmentService)
     private lateinit var productTemplateService: ProductTemplateService
 
     @BeforeEach
     fun setUp() {
         productTemplateService =
-            ProductTemplateService(
-                productTemplateRepository,
-                fieldCatalogService,
-                templateAttachmentService,
-                caCaaDeclarationCatalogService,
-            )
+            ProductTemplateService(productTemplateRepository, fieldCatalogService, templateAttachmentService)
     }
 
     @Test
@@ -56,7 +50,36 @@ class ProductTemplateServiceTest {
         assertEquals("PPN Template", saved.name)
         assertEquals(2, saved.standardFieldDefaults.size)
         assertEquals(emptySet<String>(), saved.includedCommonFieldKeys)
-        assertEquals(emptySet<String>(), saved.includedCaCaaDeclarationQuestionKeys)
+        assertEquals(emptyList<String>(), saved.caCaaDeclarationQuestions)
+    }
+
+    @Test
+    fun `creates template with custom CA CAA declaration questions`() {
+        whenever(productTemplateRepository.save(any<ProductTemplateDocument>())).thenAnswer { invocation ->
+            val document = invocation.getArgument<ProductTemplateDocument>(0)
+            document.copy(id = "template-1")
+        }
+
+        val saved =
+            productTemplateService.create(
+                SaveProductTemplateCommand(
+                    name = "PPN Template",
+                    caCaaDeclarationQuestions =
+                        listOf(
+                            "  Does the client confirm suitability?  ",
+                            "",
+                            "Has the brochure been read?",
+                        ),
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                "Does the client confirm suitability?",
+                "Has the brochure been read?",
+            ),
+            saved.caCaaDeclarationQuestions,
+        )
     }
 
     @Test
@@ -98,18 +121,6 @@ class ProductTemplateServiceTest {
     }
 
     @Test
-    fun `rejects unknown CA CAA declaration question keys`() {
-        assertThrows(ValidationException::class.java) {
-            productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "Invalid",
-                    includedCaCaaDeclarationQuestionKeys = setOf("unknown_question"),
-                ),
-            )
-        }
-    }
-
-    @Test
     fun `updates existing template`() {
         val existing =
             ProductTemplateDocument(
@@ -119,7 +130,7 @@ class ProductTemplateServiceTest {
                 status = TemplateStatus.DRAFT,
                 standardFieldDefaults = emptyMap(),
                 includedCommonFieldKeys = emptyList(),
-                includedCaCaaDeclarationQuestionKeys = emptyList(),
+                caCaaDeclarationQuestions = emptyList(),
                 createdAt = Instant.parse("2026-01-01T00:00:00Z"),
                 updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
             )

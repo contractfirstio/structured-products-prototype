@@ -101,7 +101,7 @@ class CommonFieldsPanel(
 
         add(
             Span(
-                "Only included common fields appear when creating a product from this template.",
+                "Only included product specific fields appear when creating a product from this template.",
             ).apply {
                 addClassName("template-panel-hint")
             },
@@ -114,7 +114,7 @@ class CommonFieldsPanel(
 
         if (allFields.isEmpty()) {
             add(
-                Span("No common fields are defined in the catalog yet.").apply {
+                Span("No product specific fields are defined in the catalog yet.").apply {
                     addClassName("template-empty-state")
                 },
             )
