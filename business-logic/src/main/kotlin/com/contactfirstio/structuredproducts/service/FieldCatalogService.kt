@@ -86,7 +86,17 @@ class FieldCatalogService(
         val knownKeys = commonFields().map { it.key }.toSet()
         val unknown = keys - knownKeys
         if (unknown.isNotEmpty()) {
-            throw ValidationException("Unknown product specific field keys: ${unknown.joinToString()}")
+            throw ValidationException("Unknown common field keys: ${unknown.joinToString()}")
+        }
+    }
+
+    fun validateMandatoryCommonKeys(mandatoryKeys: Set<String>, includedKeys: Set<String>) {
+        validateIncludedCommonKeys(mandatoryKeys)
+        val notIncluded = mandatoryKeys - includedKeys
+        if (notIncluded.isNotEmpty()) {
+            throw ValidationException(
+                "Mandatory common fields must be included: ${notIncluded.joinToString()}",
+            )
         }
     }
 

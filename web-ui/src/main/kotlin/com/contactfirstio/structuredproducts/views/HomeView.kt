@@ -24,7 +24,7 @@ class HomeView : VerticalLayout() {
                         addClassName("feature-card")
                         add(
                             Span("Product Templates").apply { addClassName("feature-card-title") },
-                            Span("Define fixed values and select product specific fields per template.")
+                            Span("Define fixed values and select common fields per template.")
                                 .apply { addClassName("feature-card-text") },
                         )
                     },

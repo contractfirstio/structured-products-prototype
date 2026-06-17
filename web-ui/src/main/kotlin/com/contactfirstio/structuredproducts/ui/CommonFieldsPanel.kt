@@ -16,15 +16,31 @@ import com.vaadin.flow.data.value.ValueChangeMode
 class CommonFieldsPanel(
     fieldCatalogService: FieldCatalogService,
     private val includedKeys: MutableSet<String>,
+    private val mandatoryKeys: MutableSet<String>,
 ) : VerticalLayout() {
 
     private data class CommonFieldRow(
         val field: CatalogFieldDefinition,
         var included: Boolean,
+        var requirement: FieldRequirement,
     )
 
     private val allFields = fieldCatalogService.commonFields()
-    private val rows = allFields.map { CommonFieldRow(it, includedKeys.contains(it.key)) }.toMutableList()
+    private val rows =
+        allFields
+            .map { field ->
+                CommonFieldRow(
+                    field = field,
+                    included = includedKeys.contains(field.key),
+                    requirement =
+                        if (mandatoryKeys.contains(field.key)) {
+                            FieldRequirement.MANDATORY
+                        } else {
+                            FieldRequirement.OPTIONAL
+                        },
+                )
+            }
+            .toMutableList()
     private val searchField =
         TextField().apply {
             placeholder = "Search fields..."
@@ -48,7 +64,6 @@ class CommonFieldsPanel(
         Grid<CommonFieldRow>().apply {
             addClassName("template-common-grid")
             setWidthFull()
-            height = "360px"
 
             addComponentColumn { row ->
                 Checkbox(row.included).apply {
@@ -58,7 +73,10 @@ class CommonFieldsPanel(
                             includedKeys.add(row.field.key)
                         } else {
                             includedKeys.remove(row.field.key)
+                            row.requirement = FieldRequirement.OPTIONAL
+                            mandatoryKeys.remove(row.field.key)
                         }
+                        applyFilters()
                     }
                 }
             }
@@ -74,24 +92,35 @@ class CommonFieldsPanel(
                 .setWidth("5.5rem")
                 .setAutoWidth(false)
             addComponentColumn { row ->
-                Span(
-                    if (row.field.requirement == FieldRequirement.MANDATORY) "Mandatory" else "Optional",
-                ).apply {
-                    addClassName("template-field-badge")
-                    element.setAttribute(
-                        "data-requirement",
-                        row.field.requirement.name.lowercase(),
-                    )
+                ComboBox<FieldRequirement>().apply {
+                    addClassName("template-common-requirement")
+                    setItems(FieldRequirement.OPTIONAL, FieldRequirement.MANDATORY)
+                    setItemLabelGenerator {
+                        if (it == FieldRequirement.MANDATORY) "Mandatory" else "Optional"
+                    }
+                    value = row.requirement
+                    isEnabled = row.included
+                    width = "7.5rem"
+                    addValueChangeListener { event ->
+                        val selected = event.value ?: FieldRequirement.OPTIONAL
+                        row.requirement = selected
+                        if (selected == FieldRequirement.MANDATORY) {
+                            mandatoryKeys.add(row.field.key)
+                        } else {
+                            mandatoryKeys.remove(row.field.key)
+                        }
+                    }
                 }
             }
                 .setHeader("Rule")
                 .setFlexGrow(0)
-                .setWidth("7.5rem")
+                .setWidth("8.5rem")
                 .setAutoWidth(false)
         }
 
     init {
         addClassName("template-fields-panel")
+        addClassName("template-common-fields-panel")
         isPadding = false
         setWidthFull()
 
@@ -101,7 +130,8 @@ class CommonFieldsPanel(
 
         add(
             Span(
-                "Only included product specific fields appear when creating a product from this template.",
+                "Choose which common fields appear when creating a product. " +
+                    "Included fields default to optional; set Rule to Mandatory when required.",
             ).apply {
                 addClassName("template-panel-hint")
             },
@@ -114,7 +144,7 @@ class CommonFieldsPanel(
 
         if (allFields.isEmpty()) {
             add(
-                Span("No product specific fields are defined in the catalog yet.").apply {
+                Span("No common fields are defined in the catalog yet.").apply {
                     addClassName("template-empty-state")
                 },
             )
@@ -149,7 +179,15 @@ class CommonFieldsPanel(
     }
 
     fun syncFromIncludedKeys() {
-        rows.forEach { row -> row.included = includedKeys.contains(row.field.key) }
+        rows.forEach { row ->
+            row.included = includedKeys.contains(row.field.key)
+            row.requirement =
+                if (mandatoryKeys.contains(row.field.key)) {
+                    FieldRequirement.MANDATORY
+                } else {
+                    FieldRequirement.OPTIONAL
+                }
+        }
         applyFilters()
     }
 }

@@ -12,7 +12,9 @@ data class ProductTemplateDocument(
     val status: TemplateStatus = TemplateStatus.DRAFT,
     val standardFieldDefaults: Map<String, String> = emptyMap(),
     val includedCommonFieldKeys: List<String> = emptyList(),
+    val mandatoryCommonFieldKeys: List<String> = emptyList(),
     val caCaaDeclarationQuestions: List<String> = emptyList(),
+    val customFields: List<TemplateCustomFieldDefinition> = emptyList(),
     val createdAt: Instant,
     val updatedAt: Instant,
 )

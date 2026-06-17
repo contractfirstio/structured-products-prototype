@@ -583,6 +583,44 @@ vaadin-grid {
     color: var(--sp-primary);
 }
 
+.template-custom-fields-panel {
+    gap: 0.75rem;
+    max-width: 52rem;
+}
+
+.template-custom-fields-panel-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sp-primary);
+}
+
+.template-custom-fields-list {
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.template-custom-field-row {
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--sp-border);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--sp-bg-subtle);
+}
+
+.template-custom-field-header {
+    gap: 0.75rem;
+}
+
+.template-custom-field-type {
+    flex: 0 0 10rem;
+}
+
+.template-add-custom-field-button {
+    align-self: flex-start;
+    margin-top: 0.25rem;
+}
+
 .template-field-sections {
     gap: 0.5rem;
 }
@@ -639,6 +677,11 @@ vaadin-grid {
 .template-standard-grid,
 .template-common-grid {
     border-top: 1px solid var(--sp-border);
+}
+
+.template-common-fields-panel .template-common-grid {
+    height: calc(100vh - 10.5rem);
+    min-height: 40rem;
 }
 
 .template-standard-grid {

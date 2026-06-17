@@ -1,6 +1,8 @@
 package com.contactfirstio.structuredproducts.service
 
 import com.contactfirstio.structuredproducts.data.document.ProductTemplateDocument
+import com.contactfirstio.structuredproducts.data.document.TemplateCustomFieldDefinition
+import com.contactfirstio.structuredproducts.data.document.TemplateCustomFieldType
 import com.contactfirstio.structuredproducts.data.document.TemplateStatus
 import com.contactfirstio.structuredproducts.data.repository.ProductTemplateRepository
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -50,7 +52,83 @@ class ProductTemplateServiceTest {
         assertEquals("PPN Template", saved.name)
         assertEquals(2, saved.standardFieldDefaults.size)
         assertEquals(emptySet<String>(), saved.includedCommonFieldKeys)
+        assertEquals(emptySet<String>(), saved.mandatoryCommonFieldKeys)
         assertEquals(emptyList<String>(), saved.caCaaDeclarationQuestions)
+        assertEquals(emptyList<TemplateCustomFieldDefinition>(), saved.customFields)
+    }
+
+    @Test
+    fun `creates template with custom fields`() {
+        whenever(productTemplateRepository.save(any<ProductTemplateDocument>())).thenAnswer { invocation ->
+            val document = invocation.getArgument<ProductTemplateDocument>(0)
+            document.copy(id = "template-1")
+        }
+
+        val saved =
+            productTemplateService.create(
+                SaveProductTemplateCommand(
+                    name = "PPN Template",
+                    customFields =
+                        listOf(
+                            TemplateCustomFieldDefinition(
+                                label = "Settlement delay",
+                                dataType = TemplateCustomFieldType.INTEGER,
+                                mandatory = true,
+                            ),
+                            TemplateCustomFieldDefinition(
+                                label = "Risk tier",
+                                dataType = TemplateCustomFieldType.ENUM,
+                                enumOptions = listOf("Low", "Medium", "High"),
+                            ),
+                            TemplateCustomFieldDefinition(label = "", dataType = TemplateCustomFieldType.STRING),
+                        ),
+                ),
+            )
+
+        assertEquals(2, saved.customFields.size)
+        assertEquals("settlement_delay", saved.customFields[0].key)
+        assertEquals("Settlement delay", saved.customFields[0].label)
+        assertEquals(TemplateCustomFieldType.INTEGER, saved.customFields[0].dataType)
+        assertEquals(true, saved.customFields[0].mandatory)
+        assertEquals("risk_tier", saved.customFields[1].key)
+        assertEquals(listOf("Low", "Medium", "High"), saved.customFields[1].enumOptions)
+    }
+
+    @Test
+    fun `rejects enum custom field without options`() {
+        assertThrows(ValidationException::class.java) {
+            productTemplateService.create(
+                SaveProductTemplateCommand(
+                    name = "Invalid",
+                    customFields =
+                        listOf(
+                            TemplateCustomFieldDefinition(
+                                label = "Risk tier",
+                                dataType = TemplateCustomFieldType.ENUM,
+                            ),
+                        ),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `rejects custom field key that conflicts with catalog field`() {
+        assertThrows(ValidationException::class.java) {
+            productTemplateService.create(
+                SaveProductTemplateCommand(
+                    name = "Invalid",
+                    customFields =
+                        listOf(
+                            TemplateCustomFieldDefinition(
+                                key = "tenor",
+                                label = "Tenor override",
+                                dataType = TemplateCustomFieldType.STRING,
+                            ),
+                        ),
+                ),
+            )
+        }
     }
 
     @Test
@@ -135,6 +213,39 @@ class ProductTemplateServiceTest {
     }
 
     @Test
+    fun `rejects mandatory common field keys that are not included`() {
+        assertThrows(ValidationException::class.java) {
+            productTemplateService.create(
+                SaveProductTemplateCommand(
+                    name = "Invalid",
+                    includedCommonFieldKeys = setOf("tenor"),
+                    mandatoryCommonFieldKeys = setOf("currency"),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `persists mandatory common field keys for included fields`() {
+        whenever(productTemplateRepository.save(any<ProductTemplateDocument>())).thenAnswer { invocation ->
+            val document = invocation.getArgument<ProductTemplateDocument>(0)
+            document.copy(id = "template-1")
+        }
+
+        val saved =
+            productTemplateService.create(
+                SaveProductTemplateCommand(
+                    name = "PPN Template",
+                    includedCommonFieldKeys = setOf("tenor", "currency"),
+                    mandatoryCommonFieldKeys = setOf("tenor", "currency"),
+                ),
+            )
+
+        assertEquals(setOf("tenor", "currency"), saved.includedCommonFieldKeys)
+        assertEquals(setOf("tenor", "currency"), saved.mandatoryCommonFieldKeys)
+    }
+
+    @Test
     fun `updates existing template`() {
         val existing =
             ProductTemplateDocument(
@@ -144,7 +255,9 @@ class ProductTemplateServiceTest {
                 status = TemplateStatus.DRAFT,
                 standardFieldDefaults = emptyMap(),
                 includedCommonFieldKeys = emptyList(),
+                mandatoryCommonFieldKeys = emptyList(),
                 caCaaDeclarationQuestions = emptyList(),
+                customFields = emptyList(),
                 createdAt = Instant.parse("2026-01-01T00:00:00Z"),
                 updatedAt = Instant.parse("2026-01-01T00:00:00Z"),
             )

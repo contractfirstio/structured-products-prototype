@@ -40,11 +40,15 @@ class TemplateListView(
                 .setFlexGrow(0)
 
             addColumn { "${it.commonFieldsSelected} of ${it.commonFieldsTotal}" }
-                .setHeader("Product specific fields")
+                .setHeader("Common fields")
                 .setFlexGrow(0)
 
             addColumn { "${it.caCaaDeclarationQuestionCount} questions" }
                 .setHeader("CA/CAA")
+                .setFlexGrow(0)
+
+            addColumn { "${it.customFieldCount} custom" }
+                .setHeader("Custom fields")
                 .setFlexGrow(0)
 
             addColumn { it.status.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
