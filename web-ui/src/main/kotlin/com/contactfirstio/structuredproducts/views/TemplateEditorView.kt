@@ -26,9 +26,8 @@ import com.vaadin.flow.component.tabs.Tab
 import com.vaadin.flow.component.tabs.Tabs
 import com.vaadin.flow.component.tabs.TabsVariant
 import com.vaadin.flow.component.textfield.TextField
-import com.vaadin.flow.router.BeforeEvent
-import com.vaadin.flow.router.HasUrlParameter
-import com.vaadin.flow.router.OptionalParameter
+import com.vaadin.flow.router.BeforeEnterEvent
+import com.vaadin.flow.router.BeforeEnterObserver
 import com.vaadin.flow.router.QueryParameters
 import com.vaadin.flow.router.Route
 import java.time.LocalDate
@@ -40,7 +39,7 @@ class TemplateEditorView(
     private val fieldCatalogService: FieldCatalogService,
     private val templateDefaultFieldFactory: TemplateDefaultFieldFactory,
 ) : VerticalLayout(),
-    HasUrlParameter<String> {
+    BeforeEnterObserver {
 
     private var templateId: String? = null
 
@@ -91,8 +90,12 @@ class TemplateEditorView(
         isPadding = false
     }
 
-    override fun setParameter(event: BeforeEvent, @OptionalParameter parameter: String?) {
-        templateId = parameter?.takeIf { it.isNotBlank() }
+    override fun beforeEnter(event: BeforeEnterEvent) {
+        templateId =
+            event.routeParameters
+                .get("templateId")
+                .orElse(null)
+                ?.takeIf { it.isNotBlank() }
 
         standardDefaults.clear()
         includedCommonKeys.clear()

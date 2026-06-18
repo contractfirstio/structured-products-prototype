@@ -17,6 +17,8 @@ import com.vaadin.flow.router.BeforeEnterEvent
 import com.vaadin.flow.router.BeforeEnterObserver
 import com.vaadin.flow.router.Location
 import com.vaadin.flow.router.Route
+import com.vaadin.flow.router.RouteParam
+import com.vaadin.flow.router.RouteParameters
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -155,7 +157,10 @@ class TemplateListView(
             if (templateId == null) {
                 ui.navigate(TemplateEditorView::class.java)
             } else {
-                ui.navigate(TemplateEditorView::class.java, templateId)
+                ui.navigate(
+                    TemplateEditorView::class.java,
+                    RouteParameters(RouteParam("templateId", templateId)),
+                )
             }
         }
     }

@@ -259,6 +259,52 @@ class ProductTemplateServiceTest {
     }
 
     @Test
+    fun `findById returns saved template detail`() {
+        val defaults =
+            requiredTemplateDefaults() +
+                mapOf(
+                    "booking_center" to "HK/SG",
+                    "product_status" to "Draft",
+                )
+        val document =
+            ProductTemplateDocument(
+                id = "template-1",
+                name = "PPN Template",
+                description = "Principal protected note",
+                status = TemplateStatus.ACTIVE,
+                standardFieldDefaults = defaults,
+                includedCommonFieldKeys = listOf("tenor", "currency"),
+                mandatoryCommonFieldKeys = listOf("tenor"),
+                caCaaDeclarationQuestions = listOf("Does the client confirm suitability?"),
+                customFields =
+                    listOf(
+                        TemplateCustomFieldDefinition(
+                            key = "settlement_delay",
+                            label = "Settlement delay",
+                            dataType = TemplateCustomFieldType.INTEGER,
+                            mandatory = true,
+                        ),
+                    ),
+                createdAt = Instant.parse("2026-01-01T00:00:00Z"),
+                updatedAt = Instant.parse("2026-01-02T00:00:00Z"),
+            )
+        whenever(productTemplateRepository.findById("template-1")).thenReturn(Optional.of(document))
+
+        val detail = productTemplateService.findById("template-1")
+
+        assertEquals("template-1", detail?.id)
+        assertEquals("PPN Template", detail?.name)
+        assertEquals("Principal protected note", detail?.description)
+        assertEquals(TemplateStatus.ACTIVE, detail?.status)
+        assertEquals(defaults, detail?.standardFieldDefaults)
+        assertEquals(setOf("tenor", "currency"), detail?.includedCommonFieldKeys)
+        assertEquals(setOf("tenor"), detail?.mandatoryCommonFieldKeys)
+        assertEquals(listOf("Does the client confirm suitability?"), detail?.caCaaDeclarationQuestions)
+        assertEquals(1, detail?.customFields?.size)
+        assertEquals("settlement_delay", detail?.customFields?.first()?.key)
+    }
+
+    @Test
     fun `updates existing template`() {
         val existing =
             ProductTemplateDocument(
