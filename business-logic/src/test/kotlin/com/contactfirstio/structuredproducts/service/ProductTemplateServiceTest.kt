@@ -22,6 +22,25 @@ class ProductTemplateServiceTest {
     private val fieldCatalogService = FieldCatalogService(templateAttachmentService)
     private lateinit var productTemplateService: ProductTemplateService
 
+    private fun validTemplateCommand(
+        name: String = "PPN Template",
+        description: String = "Principal protected note",
+        standardFieldDefaults: Map<String, String> = requiredTemplateDefaults(),
+    ): SaveProductTemplateCommand =
+        SaveProductTemplateCommand(
+            name = name,
+            description = description,
+            standardFieldDefaults = standardFieldDefaults,
+        )
+
+    private fun requiredTemplateDefaults(): Map<String, String> =
+        mapOf(
+            "apc_code" to "APC123",
+            "pip_id" to "PIP-001",
+            "risk_profile" to "Protection",
+            "pay_off" to "Capital protected at maturity",
+        )
+
     @BeforeEach
     fun setUp() {
         productTemplateService =
@@ -37,20 +56,18 @@ class ProductTemplateServiceTest {
 
         val saved =
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "PPN Template",
-                    description = "Principal protected note",
-                    status = TemplateStatus.ACTIVE,
+                validTemplateCommand(
                     standardFieldDefaults =
-                        mapOf(
-                            "booking_center" to "HK/SG",
-                            "product_status" to "Draft",
-                        ),
-                ),
+                        requiredTemplateDefaults() +
+                            mapOf(
+                                "booking_center" to "HK/SG",
+                                "product_status" to "Draft",
+                            ),
+                ).copy(status = TemplateStatus.ACTIVE),
             )
 
         assertEquals("PPN Template", saved.name)
-        assertEquals(2, saved.standardFieldDefaults.size)
+        assertEquals(6, saved.standardFieldDefaults.size)
         assertEquals(emptySet<String>(), saved.includedCommonFieldKeys)
         assertEquals(emptySet<String>(), saved.mandatoryCommonFieldKeys)
         assertEquals(emptyList<String>(), saved.caCaaDeclarationQuestions)
@@ -66,8 +83,7 @@ class ProductTemplateServiceTest {
 
         val saved =
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "PPN Template",
+                validTemplateCommand().copy(
                     customFields =
                         listOf(
                             TemplateCustomFieldDefinition(
@@ -98,8 +114,7 @@ class ProductTemplateServiceTest {
     fun `rejects enum custom field without options`() {
         assertThrows(ValidationException::class.java) {
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "Invalid",
+                validTemplateCommand().copy(
                     customFields =
                         listOf(
                             TemplateCustomFieldDefinition(
@@ -116,8 +131,7 @@ class ProductTemplateServiceTest {
     fun `rejects custom field key that conflicts with catalog field`() {
         assertThrows(ValidationException::class.java) {
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "Invalid",
+                validTemplateCommand().copy(
                     customFields =
                         listOf(
                             TemplateCustomFieldDefinition(
@@ -140,8 +154,7 @@ class ProductTemplateServiceTest {
 
         val saved =
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "PPN Template",
+                validTemplateCommand().copy(
                     caCaaDeclarationQuestions =
                         listOf(
                             "  Does the client confirm suitability?  ",
@@ -165,9 +178,10 @@ class ProductTemplateServiceTest {
         val exception =
             assertThrows(ValidationException::class.java) {
                 productTemplateService.create(
-                    SaveProductTemplateCommand(
-                        name = "Invalid",
-                        standardFieldDefaults = mapOf("creation_timestamp" to "2026-01-01T00:00:00"),
+                    validTemplateCommand(
+                        standardFieldDefaults =
+                            requiredTemplateDefaults() +
+                                mapOf("creation_timestamp" to "2026-01-01T00:00:00"),
                     ),
                 )
             }
@@ -179,9 +193,10 @@ class ProductTemplateServiceTest {
         val exception =
             assertThrows(ValidationException::class.java) {
                 productTemplateService.create(
-                    SaveProductTemplateCommand(
-                        name = "Invalid",
-                        standardFieldDefaults = mapOf("product_creator" to "alice@example.com"),
+                    validTemplateCommand(
+                        standardFieldDefaults =
+                            requiredTemplateDefaults() +
+                                mapOf("product_creator" to "alice@example.com"),
                     ),
                 )
             }
@@ -192,9 +207,10 @@ class ProductTemplateServiceTest {
     fun `rejects fixed values on non-fixable standard fields`() {
         assertThrows(ValidationException::class.java) {
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "Invalid",
-                    standardFieldDefaults = mapOf("product_name" to "Should not be allowed"),
+                validTemplateCommand(
+                    standardFieldDefaults =
+                        requiredTemplateDefaults() +
+                            mapOf("product_name" to "Should not be allowed"),
                 ),
             )
         }
@@ -204,8 +220,7 @@ class ProductTemplateServiceTest {
     fun `rejects unknown common field keys`() {
         assertThrows(ValidationException::class.java) {
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "Invalid",
+                validTemplateCommand().copy(
                     includedCommonFieldKeys = setOf("unknown_field"),
                 ),
             )
@@ -216,8 +231,7 @@ class ProductTemplateServiceTest {
     fun `rejects mandatory common field keys that are not included`() {
         assertThrows(ValidationException::class.java) {
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "Invalid",
+                validTemplateCommand().copy(
                     includedCommonFieldKeys = setOf("tenor"),
                     mandatoryCommonFieldKeys = setOf("currency"),
                 ),
@@ -234,8 +248,7 @@ class ProductTemplateServiceTest {
 
         val saved =
             productTemplateService.create(
-                SaveProductTemplateCommand(
-                    name = "PPN Template",
+                validTemplateCommand().copy(
                     includedCommonFieldKeys = setOf("tenor", "currency"),
                     mandatoryCommonFieldKeys = setOf("tenor", "currency"),
                 ),
@@ -269,13 +282,40 @@ class ProductTemplateServiceTest {
         val updated =
             productTemplateService.update(
                 "template-1",
-                SaveProductTemplateCommand(
+                validTemplateCommand(
                     name = "Updated name",
-                    standardFieldDefaults = mapOf("market_segment" to "Public"),
+                    standardFieldDefaults =
+                        requiredTemplateDefaults() +
+                            mapOf("market_segment" to "Public"),
                 ),
             )
 
         assertEquals("Updated name", updated.name)
-        assertEquals(mapOf("market_segment" to "Public"), updated.standardFieldDefaults)
+        assertEquals(
+            requiredTemplateDefaults() + mapOf("market_segment" to "Public"),
+            updated.standardFieldDefaults,
+        )
+    }
+
+    @Test
+    fun `rejects blank description`() {
+        val exception =
+            assertThrows(ValidationException::class.java) {
+                productTemplateService.create(
+                    validTemplateCommand(description = "   "),
+                )
+            }
+        assertEquals("Description is required", exception.message)
+    }
+
+    @Test
+    fun `rejects missing required template standard defaults`() {
+        val exception =
+            assertThrows(ValidationException::class.java) {
+                productTemplateService.create(
+                    validTemplateCommand(standardFieldDefaults = emptyMap()),
+                )
+            }
+        assertEquals("Risk Profile is required", exception.message)
     }
 }

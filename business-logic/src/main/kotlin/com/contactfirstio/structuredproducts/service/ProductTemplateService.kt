@@ -79,6 +79,10 @@ class ProductTemplateService(
         if (command.name.isBlank()) {
             throw ValidationException("Template name is required")
         }
+        if (command.description.isBlank()) {
+            throw ValidationException("Description is required")
+        }
+        fieldCatalogService.validateRequiredTemplateDefaults(command.standardFieldDefaults)
         fieldCatalogService.validateTemplateDefaults(command.standardFieldDefaults)
         fieldCatalogService.validateIncludedCommonKeys(command.includedCommonFieldKeys)
         fieldCatalogService.validateMandatoryCommonKeys(

@@ -1,7 +1,6 @@
 package com.contactfirstio.structuredproducts.ui
 
 import com.contactfirstio.structuredproducts.catalog.CatalogFieldDefinition
-import com.contactfirstio.structuredproducts.data.document.FieldRequirement
 import com.contactfirstio.structuredproducts.service.FieldCatalogService
 import com.vaadin.flow.component.checkbox.Checkbox
 import com.vaadin.flow.component.combobox.ComboBox
@@ -20,6 +19,8 @@ class StandardFieldsPanel(
     private val defaults: MutableMap<String, String>,
     private val templateId: String? = null,
 ) : VerticalLayout() {
+
+    private var showValidationErrors = false
 
     private val allFields = fieldCatalogService.standardFields()
     private val categoryOrder = fieldCatalogService.standardCategories()
@@ -76,12 +77,12 @@ class StandardFieldsPanel(
                 .setAutoWidth(false)
             addComponentColumn { field ->
                 Span(
-                    if (field.requirement == FieldRequirement.MANDATORY) "Mandatory" else "Optional",
+                    if (field.requiredInTemplateCreation) "Required" else "Optional",
                 ).apply {
                     addClassName("template-field-badge")
                     element.setAttribute(
                         "data-requirement",
-                        field.requirement.name.lowercase(),
+                        if (field.requiredInTemplateCreation) "required" else "optional",
                     )
                 }
             }
@@ -97,6 +98,7 @@ class StandardFieldsPanel(
                     onValueChange = { newValue ->
                         updateDefault(field.key, newValue)
                     },
+                    showValidationErrors = showValidationErrors,
                 )
             }
                 .setHeader("Fixed value")
@@ -117,6 +119,11 @@ class StandardFieldsPanel(
         categoryFilter.addValueChangeListener { applyFilters() }
 
         add(hint, toolbar, content)
+        applyFilters()
+    }
+
+    fun setShowValidationErrors(show: Boolean) {
+        showValidationErrors = show
         applyFilters()
     }
 
@@ -161,6 +168,7 @@ class StandardFieldsPanel(
                     editorFactory = templateDefaultFieldFactory,
                     defaults = defaults,
                     templateId = templateId,
+                    showValidationErrors = showValidationErrors,
                 ),
             )
         } else {

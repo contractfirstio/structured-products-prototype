@@ -12,6 +12,7 @@ data class CatalogFieldDefinition(
     val requirement: FieldRequirement,
     val enumOptions: List<String> = emptyList(),
     val defaultedInTemplateCreation: Boolean = false,
+    val requiredInTemplateCreation: Boolean = false,
     val excludedFromFixedValuesOnly: Boolean = false,
     val systemManagedAtProductCreation: Boolean = false,
     val kind: FieldKind,

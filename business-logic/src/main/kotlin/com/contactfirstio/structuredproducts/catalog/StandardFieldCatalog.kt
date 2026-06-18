@@ -15,6 +15,8 @@ object StandardFieldCatalog {
   const val CATEGORY_UNDERLYING = "Underlying"
   const val CATEGORY_BARRIER = "Barrier"
   const val CATEGORY_COUPON = "Coupon"
+  const val CATEGORY_REPORTING = "Reporting"
+  const val CATEGORY_MARKET_AND_TECHNICAL = "Market & Technical"
 
   /** Display order for Product Lifecycle fields in the template fixed values form. */
   val productLifecycleFixedValueFieldOrder: List<String> =
@@ -64,6 +66,7 @@ object StandardFieldCatalog {
               requirement = FieldRequirement.OPTIONAL,
               enumOptions = listOf("Leveraged", "Optimisation", "Performance", "Protection"),
               defaultedInTemplateCreation = true,
+              requiredInTemplateCreation = true,
           ),
           field(
               key = "pip_id",
@@ -72,6 +75,21 @@ object StandardFieldCatalog {
               dataType = FieldDataType.STRING,
               requirement = FieldRequirement.OPTIONAL,
               defaultedInTemplateCreation = true,
+              requiredInTemplateCreation = true,
+          ),
+          field(
+              key = "product_category",
+              category = CATEGORY_INITIAL_SETUP,
+              displayName = "Product Category",
+              dataType = FieldDataType.STRING,
+              requirement = FieldRequirement.OPTIONAL,
+          ),
+          field(
+              key = "minimum_launch_size",
+              category = CATEGORY_INITIAL_SETUP,
+              displayName = "Minimum Launch Size",
+              dataType = FieldDataType.DOUBLE,
+              requirement = FieldRequirement.OPTIONAL,
           ),
           field(
               key = "product_idea",
@@ -167,6 +185,7 @@ object StandardFieldCatalog {
               dataType = FieldDataType.STRING,
               requirement = FieldRequirement.OPTIONAL,
               defaultedInTemplateCreation = true,
+              requiredInTemplateCreation = true,
           ),
           field(
               key = "product_creator",
@@ -372,6 +391,7 @@ object StandardFieldCatalog {
               dataType = FieldDataType.STRING,
               requirement = FieldRequirement.OPTIONAL,
               defaultedInTemplateCreation = true,
+              requiredInTemplateCreation = true,
           ),
           field(
               key = "retro_fee_bps",
@@ -452,6 +472,27 @@ object StandardFieldCatalog {
               dataType = FieldDataType.DOUBLE,
               requirement = FieldRequirement.OPTIONAL,
           ),
+          field(
+              key = "remarks",
+              category = CATEGORY_REPORTING,
+              displayName = "Remarks",
+              dataType = FieldDataType.STRING,
+              requirement = FieldRequirement.OPTIONAL,
+          ),
+          field(
+              key = "special_remarks_by_ips",
+              category = CATEGORY_REPORTING,
+              displayName = "Special Remarks(by IPS)",
+              dataType = FieldDataType.STRING,
+              requirement = FieldRequirement.OPTIONAL,
+          ),
+          field(
+              key = "underlyings",
+              category = CATEGORY_MARKET_AND_TECHNICAL,
+              displayName = "Underlyings",
+              dataType = FieldDataType.STRING,
+              requirement = FieldRequirement.OPTIONAL,
+          ),
       )
 
   val categories: List<String> =
@@ -465,6 +506,8 @@ object StandardFieldCatalog {
           CATEGORY_UNDERLYING,
           CATEGORY_BARRIER,
           CATEGORY_COUPON,
+          CATEGORY_REPORTING,
+          CATEGORY_MARKET_AND_TECHNICAL,
       )
 
   private fun field(
@@ -475,6 +518,7 @@ object StandardFieldCatalog {
       requirement: FieldRequirement,
       enumOptions: List<String> = emptyList(),
       defaultedInTemplateCreation: Boolean = false,
+      requiredInTemplateCreation: Boolean = false,
       excludedFromFixedValuesOnly: Boolean = false,
       systemManagedAtProductCreation: Boolean = false,
   ): CatalogFieldDefinition =
@@ -486,6 +530,7 @@ object StandardFieldCatalog {
           requirement = requirement,
           enumOptions = enumOptions,
           defaultedInTemplateCreation = defaultedInTemplateCreation,
+          requiredInTemplateCreation = requiredInTemplateCreation,
           excludedFromFixedValuesOnly = excludedFromFixedValuesOnly,
           systemManagedAtProductCreation = systemManagedAtProductCreation,
           kind = FieldKind.STANDARD,

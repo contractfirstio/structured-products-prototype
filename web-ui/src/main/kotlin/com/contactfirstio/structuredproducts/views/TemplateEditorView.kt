@@ -1,5 +1,6 @@
 package com.contactfirstio.structuredproducts.views
 
+import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.data.document.TemplateCustomFieldDefinition
 import com.contactfirstio.structuredproducts.data.document.TemplateStatus
 import com.contactfirstio.structuredproducts.service.FieldCatalogService
@@ -28,6 +29,7 @@ import com.vaadin.flow.component.textfield.TextField
 import com.vaadin.flow.router.BeforeEvent
 import com.vaadin.flow.router.HasUrlParameter
 import com.vaadin.flow.router.OptionalParameter
+import com.vaadin.flow.router.QueryParameters
 import com.vaadin.flow.router.Route
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -51,8 +53,9 @@ class TemplateEditorView(
         }
     private val descriptionField =
         TextField().apply {
-            placeholder = "Description (optional)"
+            placeholder = "Description"
             element.setAttribute("aria-label", "Description")
+            isRequired = true
             addClassName("template-metadata-description")
         }
     private val statusField =
@@ -80,6 +83,7 @@ class TemplateEditorView(
     private lateinit var customTabContent: VerticalLayout
     private lateinit var caCaaTabContent: VerticalLayout
     private lateinit var tabs: Tabs
+    private lateinit var standardTab: Tab
 
     init {
         addClassName("template-editor-view")
@@ -153,7 +157,7 @@ class TemplateEditorView(
             }
 
         val standardCount = fieldCatalogService.standardFields().size
-        val standardTab = Tab("Standard fields ($standardCount)")
+        standardTab = Tab("Standard fields ($standardCount)")
         val commonTab = Tab("Common fields")
         val customTab = Tab("Custom fields")
         val caCaaTab = Tab("CA/CAA declaration")
@@ -246,18 +250,53 @@ class TemplateEditorView(
                     "itm_settlement_type" -> standardDefaults[field.key] = "Cash"
                     "effective_from" -> standardDefaults[field.key] = today.format(dateFormatter)
                     "effective_to" -> standardDefaults[field.key] = today.plusYears(10).format(dateFormatter)
+                    "investment_amount" -> standardDefaults[field.key] = "Notional"
+                    else ->
+                        if (field.dataType == FieldDataType.BOOLEAN && field.enumOptions.contains("No")) {
+                            standardDefaults[field.key] = "No"
+                        }
                 }
             }
     }
 
     private fun save() {
+        standardFieldsPanel.setShowValidationErrors(false)
+        nameField.isInvalid = false
+        descriptionField.isInvalid = false
+
+        val missingFields = mutableListOf<String>()
+
         if (nameField.isEmpty) {
             nameField.isInvalid = true
-            Notification.show("Template name is required", 4000, Notification.Position.MIDDLE)
-                .addThemeVariants(NotificationVariant.LUMO_ERROR)
+            nameField.errorMessage = "Required"
+            missingFields.add("Template name")
+        }
+        if (descriptionField.isEmpty) {
+            descriptionField.isInvalid = true
+            descriptionField.errorMessage = "Required"
+            missingFields.add("Description")
+        }
+
+        fieldCatalogService.standardFields()
+            .filter { it.requiredInTemplateCreation }
+            .forEach { field ->
+                if (standardDefaults[field.key].isNullOrBlank()) {
+                    missingFields.add(field.displayName)
+                }
+            }
+
+        if (missingFields.isNotEmpty()) {
+            if (missingFields.any { it !in setOf("Template name", "Description") }) {
+                standardFieldsPanel.setShowValidationErrors(true)
+                tabs.selectedTab = standardTab
+            }
+            Notification.show(
+                "Required: ${missingFields.joinToString(", ")}",
+                5000,
+                Notification.Position.MIDDLE,
+            ).addThemeVariants(NotificationVariant.LUMO_ERROR)
             return
         }
-        nameField.isInvalid = false
 
         val command =
             SaveProductTemplateCommand(
@@ -272,14 +311,31 @@ class TemplateEditorView(
             )
 
         try {
+            val isNewTemplate = templateId == null
             val saved =
-                if (templateId == null) {
+                if (isNewTemplate) {
                     productTemplateService.create(command)
                 } else {
                     productTemplateService.update(templateId!!, command)
                 }
-            Notification.show("Saved template: ${saved.name}", 3000, Notification.Position.BOTTOM_START)
-            ui.ifPresent { it.navigate(TemplateEditorView::class.java, saved.id) }
+            val message =
+                if (isNewTemplate) {
+                    "Created template: ${saved.name}"
+                } else {
+                    "Saved template: ${saved.name}"
+                }
+            Notification.show(message, 4000, Notification.Position.BOTTOM_START)
+                .addThemeVariants(NotificationVariant.LUMO_SUCCESS)
+            ui.ifPresent { ui ->
+                if (isNewTemplate) {
+                    ui.navigate(
+                        TemplateListView::class.java,
+                        QueryParameters.of(TemplateListView.HIGHLIGHT_QUERY_PARAM, saved.id),
+                    )
+                } else {
+                    ui.navigate(TemplateListView::class.java)
+                }
+            }
         } catch (ex: ValidationException) {
             Notification.show(ex.message ?: "Validation failed", 5000, Notification.Position.MIDDLE)
                 .addThemeVariants(NotificationVariant.LUMO_ERROR)

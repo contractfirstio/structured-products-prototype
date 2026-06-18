@@ -3,7 +3,6 @@ package com.contactfirstio.structuredproducts.ui
 import com.contactfirstio.structuredproducts.catalog.CatalogFieldDefinition
 import com.contactfirstio.structuredproducts.catalog.StandardFieldCatalog
 import com.contactfirstio.structuredproducts.data.document.FieldDataType
-import com.contactfirstio.structuredproducts.data.document.FieldRequirement
 import com.vaadin.flow.component.Component as VaadinComponent
 import com.vaadin.flow.component.formlayout.FormLayout
 import com.vaadin.flow.component.html.Div
@@ -19,6 +18,7 @@ class TemplateFixedValuesForm(
     private val editorFactory: TemplateDefaultFieldFactory,
     private val defaults: MutableMap<String, String>,
     private val templateId: String?,
+    private val showValidationErrors: Boolean = false,
 ) : VerticalLayout() {
 
     init {
@@ -210,10 +210,11 @@ class TemplateFixedValuesForm(
                 }
             },
             formLayout = true,
+            showValidationErrors = showValidationErrors,
         )
 
     private fun fieldLabel(field: CatalogFieldDefinition): String =
-        if (field.requirement == FieldRequirement.MANDATORY) {
+        if (field.requiredInTemplateCreation) {
             "${field.displayName} *"
         } else {
             field.displayName

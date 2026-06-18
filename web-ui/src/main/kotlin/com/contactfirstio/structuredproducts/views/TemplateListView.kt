@@ -13,6 +13,9 @@ import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.notification.NotificationVariant
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
+import com.vaadin.flow.router.BeforeEnterEvent
+import com.vaadin.flow.router.BeforeEnterObserver
+import com.vaadin.flow.router.Location
 import com.vaadin.flow.router.Route
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -20,7 +23,10 @@ import java.time.format.DateTimeFormatter
 @Route(value = "admin/templates", layout = MainLayout::class)
 class TemplateListView(
     private val productTemplateService: ProductTemplateService,
-) : VerticalLayout() {
+) : VerticalLayout(),
+    BeforeEnterObserver {
+
+    private var highlightedTemplateId: String? = null
 
     private val grid =
         Grid(ProductTemplateSummary::class.java, false).apply {
@@ -29,31 +35,43 @@ class TemplateListView(
 
             addColumn(ProductTemplateSummary::name)
                 .setHeader("Name")
-                .setFlexGrow(2)
+                .setFlexGrow(1)
+                .setTooltipGenerator(ProductTemplateSummary::name)
 
             addColumn(ProductTemplateSummary::description)
                 .setHeader("Description")
                 .setFlexGrow(2)
+                .setTooltipGenerator(ProductTemplateSummary::description)
 
-            addColumn { "${it.standardFieldCount} standard" }
-                .setHeader("Standard fields")
+            addColumn { "${it.standardFieldCount}" }
+                .setHeader("Std")
                 .setFlexGrow(0)
+                .setWidth("3rem")
+                .setAutoWidth(false)
 
-            addColumn { "${it.commonFieldsSelected} of ${it.commonFieldsTotal}" }
-                .setHeader("Common fields")
+            addColumn { "${it.commonFieldsSelected}/${it.commonFieldsTotal}" }
+                .setHeader("Common")
                 .setFlexGrow(0)
+                .setWidth("5rem")
+                .setAutoWidth(false)
 
-            addColumn { "${it.caCaaDeclarationQuestionCount} questions" }
+            addColumn { "${it.caCaaDeclarationQuestionCount}" }
                 .setHeader("CA/CAA")
                 .setFlexGrow(0)
+                .setWidth("4.5rem")
+                .setAutoWidth(false)
 
-            addColumn { "${it.customFieldCount} custom" }
-                .setHeader("Custom fields")
+            addColumn { "${it.customFieldCount}" }
+                .setHeader("Custom")
                 .setFlexGrow(0)
+                .setWidth("4.5rem")
+                .setAutoWidth(false)
 
             addColumn { it.status.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
                 .setHeader("Status")
                 .setFlexGrow(0)
+                .setWidth("5.5rem")
+                .setAutoWidth(false)
 
             addColumn {
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
@@ -62,6 +80,8 @@ class TemplateListView(
             }
                 .setHeader("Updated")
                 .setFlexGrow(0)
+                .setWidth("8.5rem")
+                .setAutoWidth(false)
 
             addComponentColumn { summary ->
                 HorizontalLayout(
@@ -77,11 +97,15 @@ class TemplateListView(
                         element.setAttribute("aria-label", "Delete ${summary.name}")
                     },
                 ).apply {
+                    addClassName("template-list-actions")
                     isPadding = false
+                    isSpacing = true
                 }
             }
                 .setHeader("Actions")
                 .setFlexGrow(0)
+                .setWidth("7.5rem")
+                .setAutoWidth(false)
         }
 
     init {
@@ -99,11 +123,31 @@ class TemplateListView(
         add(shell)
         setWidthFull()
         isPadding = false
-        refreshGrid()
+        style.set("min-width", "0")
+        style.set("overflow", "hidden")
     }
 
-    private fun refreshGrid() {
-        grid.setItems(productTemplateService.findAll())
+    override fun beforeEnter(event: BeforeEnterEvent) {
+        val highlightId = event.location.queryParameters.parameters[HIGHLIGHT_QUERY_PARAM]?.firstOrNull()
+        refreshGrid(highlightId)
+    }
+
+    private fun refreshGrid(highlightId: String? = null) {
+        highlightedTemplateId = highlightId
+        val items = productTemplateService.findAll()
+        grid.setPartNameGenerator { summary: ProductTemplateSummary ->
+            if (summary.id == highlightedTemplateId) "row-new" else null
+        }
+        grid.setItems(items)
+
+        if (highlightId != null) {
+            items.find { it.id == highlightId }?.let { summary ->
+                grid.scrollToItem(summary)
+            }
+            ui.ifPresent { ui ->
+                ui.page.history.replaceState(null, Location("admin/templates"), false)
+            }
+        }
     }
 
     private fun navigateToEditor(templateId: String?) {
@@ -134,5 +178,9 @@ class TemplateListView(
                 }
             }
         }.open()
+    }
+
+    companion object {
+        const val HIGHLIGHT_QUERY_PARAM = "highlight"
     }
 }

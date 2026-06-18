@@ -5,6 +5,7 @@ import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.service.FieldCatalogService
 import com.contactfirstio.structuredproducts.service.TemplateAttachmentService
 import com.vaadin.flow.component.Component as VaadinComponent
+import com.vaadin.flow.component.HasValidation
 import com.vaadin.flow.component.checkbox.CheckboxGroup
 import com.vaadin.flow.component.combobox.ComboBox
 import com.vaadin.flow.component.datetimepicker.DateTimePicker
@@ -35,6 +36,7 @@ class TemplateDefaultFieldFactory(
         templateId: String?,
         onValueChange: (String?) -> Unit,
         formLayout: Boolean = false,
+        showValidationErrors: Boolean = false,
     ): VaadinComponent {
         if (field.systemManagedAtProductCreation) {
             return Span("Set by system").apply {
@@ -96,6 +98,7 @@ class TemplateDefaultFieldFactory(
                     addValueChangeListener { event ->
                         onValueChange(event.value?.takeIf { it.isNotBlank() })
                     }
+                    applyRequiredState(this, field, currentValue, showValidationErrors)
                 }
 
             field.dataType == FieldDataType.DATE ->
@@ -147,6 +150,7 @@ class TemplateDefaultFieldFactory(
                     addValueChangeListener { event ->
                         onValueChange(event.value?.trim()?.takeIf { it.isNotEmpty() })
                     }
+                    applyRequiredState(this, field, currentValue, showValidationErrors)
                 }
 
             else ->
@@ -159,7 +163,28 @@ class TemplateDefaultFieldFactory(
                     addValueChangeListener { event ->
                         onValueChange(event.value?.trim()?.takeIf { it.isNotEmpty() })
                     }
+                    applyRequiredState(this, field, currentValue, showValidationErrors)
                 }
+        }
+    }
+
+    private fun applyRequiredState(
+        editor: VaadinComponent,
+        field: CatalogFieldDefinition,
+        currentValue: String?,
+        showValidationErrors: Boolean,
+    ) {
+        if (!field.requiredInTemplateCreation) return
+
+        when (editor) {
+            is TextField -> editor.isRequired = true
+            is TextArea -> editor.isRequired = true
+            is ComboBox<*> -> editor.isRequired = true
+        }
+
+        if (editor is HasValidation && showValidationErrors && currentValue.isNullOrBlank()) {
+            editor.isInvalid = true
+            editor.errorMessage = "Required"
         }
     }
 

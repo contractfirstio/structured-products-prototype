@@ -82,6 +82,16 @@ class FieldCatalogService(
         }
     }
 
+    fun validateRequiredTemplateDefaults(defaults: Map<String, String>) {
+        standardFields()
+            .filter { it.requiredInTemplateCreation }
+            .forEach { field ->
+                if (defaults[field.key].isNullOrBlank()) {
+                    throw ValidationException("${field.displayName} is required")
+                }
+            }
+    }
+
     fun validateIncludedCommonKeys(keys: Set<String>) {
         val knownKeys = commonFields().map { it.key }.toSet()
         val unknown = keys - knownKeys

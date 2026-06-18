@@ -282,6 +282,13 @@ vaadin-app-layout.app-shell::part(drawer) {
 
 .page-shell-wide {
     max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+vaadin-app-layout.app-shell::part(content) {
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 .page-header {
@@ -604,6 +611,30 @@ vaadin-grid {
 .template-list-panel,
 .template-fields-container {
     margin-bottom: 0.5rem;
+}
+
+.template-list-panel {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    box-sizing: border-box;
+}
+
+.template-list-grid {
+    border-top: 1px solid var(--sp-border);
+    min-width: 0;
+    width: 100%;
+}
+
+.template-list-actions {
+    flex-wrap: nowrap;
+    gap: 0.15rem;
+}
+
+.template-list-actions vaadin-button {
+    margin: 0;
+    min-width: 0;
+    padding-inline: 0.35rem;
 }
 
 .template-metadata-bar {
@@ -946,7 +977,25 @@ vaadin-grid {
     padding: 1rem 0;
 }
 
-.template-list-grid {
-    border-top: 1px solid var(--sp-border);
+.template-list-grid::part(row-new) {
+    animation: template-row-new-highlight 5s ease-out;
+    font-weight: 500;
+}
+
+@keyframes template-row-new-highlight {
+    0% {
+        background: rgba(230, 0, 0, 0.18);
+        box-shadow: inset 4px 0 0 var(--ubs-red);
+    }
+
+    25% {
+        background: rgba(230, 0, 0, 0.12);
+        box-shadow: inset 4px 0 0 var(--ubs-red);
+    }
+
+    100% {
+        background: transparent;
+        box-shadow: none;
+    }
 }
 
