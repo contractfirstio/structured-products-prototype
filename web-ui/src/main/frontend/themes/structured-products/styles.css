@@ -613,6 +613,216 @@ vaadin-grid {
     margin-bottom: 0.5rem;
 }
 
+.template-list-split {
+    align-items: stretch;
+    gap: 0.75rem;
+    min-height: calc(100vh - 8rem);
+}
+
+.template-list-grid-panel {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.glass-panel.template-detail-panel {
+    flex: 0 0 22rem;
+    max-width: 26rem;
+    min-width: 0;
+    margin-bottom: 0.5rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.template-detail-panel-inner {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.template-detail-panel-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.template-detail-empty {
+    color: var(--sp-text-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    padding: 1rem 0.25rem;
+}
+
+.template-detail-header {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--sp-border);
+    margin-bottom: 0.25rem;
+}
+
+.template-detail-name {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.template-detail-title-row {
+    gap: 0.5rem;
+}
+
+.template-detail-status {
+    flex-shrink: 0;
+}
+
+.template-detail-status[data-status="active"] {
+    background: rgba(46, 125, 50, 0.12);
+    border-color: rgba(46, 125, 50, 0.35);
+    color: #2e7d32;
+}
+
+.template-detail-status[data-status="draft"] {
+    background: var(--sp-bg-surface);
+}
+
+.template-detail-description {
+    margin: 0;
+    color: var(--sp-text-muted);
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.template-detail-actions {
+    gap: 0.5rem;
+}
+
+.template-detail-meta {
+    color: var(--sp-text-subtle);
+    font-size: 0.76rem;
+}
+
+.template-detail-sections {
+    padding-top: 0.15rem;
+}
+
+.template-detail-section {
+    border: 1px solid var(--sp-border);
+    border-radius: var(--lumo-border-radius-m);
+    background: var(--sp-bg-surface);
+}
+
+.template-detail-section::part(summary) {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.45rem 0.6rem;
+}
+
+.template-detail-section::part(content) {
+    padding: 0 0.6rem 0.55rem;
+}
+
+.template-detail-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.template-detail-section-empty {
+    color: var(--sp-text-subtle);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.template-detail-kv {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.template-detail-kv-label {
+    color: var(--sp-text-muted);
+    font-weight: 500;
+}
+
+.template-detail-kv-value {
+    color: var(--sp-text);
+    overflow-wrap: anywhere;
+}
+
+.template-detail-list-item,
+.template-detail-custom-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--sp-border);
+}
+
+.template-detail-list-item:last-child,
+.template-detail-custom-field:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.template-detail-list-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--sp-text);
+}
+
+.template-detail-list-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.template-detail-custom-field-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.template-detail-custom-field-options {
+    font-size: 0.76rem;
+    color: var(--sp-text-subtle);
+    line-height: 1.35;
+}
+
+.template-detail-question {
+    display: flex;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.template-detail-question-index {
+    flex-shrink: 0;
+    color: var(--sp-text-subtle);
+    font-weight: 600;
+}
+
+.template-detail-question-text {
+    color: var(--sp-text);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+    .template-list-split {
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .glass-panel.template-detail-panel {
+        flex: none;
+        max-width: none;
+        width: 100%;
+        max-height: 24rem;
+    }
+}
+
 .template-list-panel {
     max-width: 100%;
     min-width: 0;

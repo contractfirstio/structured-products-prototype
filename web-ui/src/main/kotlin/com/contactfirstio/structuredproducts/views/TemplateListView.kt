@@ -1,12 +1,15 @@
 package com.contactfirstio.structuredproducts.views
 
+import com.contactfirstio.structuredproducts.service.FieldCatalogService
 import com.contactfirstio.structuredproducts.service.ProductTemplateService
 import com.contactfirstio.structuredproducts.service.ProductTemplateSummary
 import com.contactfirstio.structuredproducts.service.ValidationException
+import com.contactfirstio.structuredproducts.ui.TemplateDetailPanel
 import com.contactfirstio.structuredproducts.ui.UiComponents
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.button.ButtonVariant
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog
+import com.vaadin.flow.component.grid.AbstractGridSingleSelectionModel
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.icon.VaadinIcon
 import com.vaadin.flow.component.notification.Notification
@@ -25,15 +28,22 @@ import java.time.format.DateTimeFormatter
 @Route(value = "admin/templates", layout = MainLayout::class)
 class TemplateListView(
     private val productTemplateService: ProductTemplateService,
+    private val fieldCatalogService: FieldCatalogService,
 ) : VerticalLayout(),
     BeforeEnterObserver {
 
     private var highlightedTemplateId: String? = null
+    private var selectedTemplateId: String? = null
+
+    private lateinit var detailPanel: TemplateDetailPanel
 
     private val grid =
         Grid(ProductTemplateSummary::class.java, false).apply {
             addClassName("template-list-grid")
             setWidthFull()
+            selectionMode = Grid.SelectionMode.SINGLE
+            (selectionModel as AbstractGridSingleSelectionModel<ProductTemplateSummary>)
+                .setDeselectAllowed(false)
 
             addColumn(ProductTemplateSummary::name)
                 .setHeader("Name")
@@ -111,16 +121,45 @@ class TemplateListView(
         }
 
     init {
+        detailPanel =
+            TemplateDetailPanel(fieldCatalogService) { templateId ->
+                navigateToEditor(templateId)
+            }
+
+        grid.addSelectionListener { event ->
+            val selected = event.firstSelectedItem.orElse(null)
+            if (selected != null) {
+                selectedTemplateId = selected.id
+                showDetailFor(selected.id)
+            } else {
+                selectedTemplateId = null
+                detailPanel.showEmpty()
+            }
+        }
+
+        val listPanel =
+            UiComponents.glassPanel("template-list-panel", "template-list-grid-panel").apply {
+                setWidthFull()
+                add(grid)
+            }
+
+        val splitLayout =
+            HorizontalLayout(listPanel, UiComponents.glassPanel("template-detail-panel").apply {
+                add(detailPanel)
+            }).apply {
+                addClassName("template-list-split")
+                setWidthFull()
+                isPadding = false
+                expand(listPanel)
+            }
+
         val shell = UiComponents.pageShell(wide = true)
         shell.add(
             UiComponents.pageHeader(
                 title = "Product Templates",
                 UiComponents.primaryButton("Create template") { navigateToEditor(null) },
             ),
-            UiComponents.glassPanel("template-list-panel").apply {
-                setWidthFull()
-                add(grid)
-            },
+            splitLayout,
         )
         add(shell)
         setWidthFull()
@@ -142,13 +181,33 @@ class TemplateListView(
         }
         grid.setItems(items)
 
-        if (highlightId != null) {
-            items.find { it.id == highlightId }?.let { summary ->
+        val selectId = highlightId ?: selectedTemplateId
+        if (selectId != null) {
+            val summary = items.find { it.id == selectId }
+            if (summary != null) {
+                grid.select(summary)
                 grid.scrollToItem(summary)
+                showDetailFor(selectId)
+            } else {
+                grid.deselectAll()
+                selectedTemplateId = null
+                detailPanel.showEmpty()
             }
+        }
+
+        if (highlightId != null) {
             ui.ifPresent { ui ->
                 ui.page.history.replaceState(null, Location("admin/templates"), false)
             }
+        }
+    }
+
+    private fun showDetailFor(templateId: String) {
+        val detail = productTemplateService.findById(templateId)
+        if (detail != null) {
+            detailPanel.showDetail(detail)
+        } else {
+            detailPanel.showEmpty()
         }
     }
 
