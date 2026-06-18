@@ -14,8 +14,10 @@ import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.icon.VaadinIcon
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.notification.NotificationVariant
+import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
+import com.vaadin.flow.component.splitlayout.SplitLayout
 import com.vaadin.flow.router.BeforeEnterEvent
 import com.vaadin.flow.router.BeforeEnterObserver
 import com.vaadin.flow.router.Location
@@ -34,8 +36,12 @@ class TemplateListView(
 
     private var highlightedTemplateId: String? = null
     private var selectedTemplateId: String? = null
+    private var detailPanelVisible = false
+    private var savedSplitterPosition = 72.0
 
     private lateinit var detailPanel: TemplateDetailPanel
+    private lateinit var splitLayout: SplitLayout
+    private lateinit var toggleDetailButton: Button
 
     private val grid =
         Grid(ProductTemplateSummary::class.java, false).apply {
@@ -137,21 +143,64 @@ class TemplateListView(
             }
         }
 
+        toggleDetailButton =
+            Button("Show template details", VaadinIcon.ANGLE_LEFT.create()) {
+                setDetailPanelVisible(!detailPanelVisible)
+            }.apply {
+                addThemeVariants(ButtonVariant.LUMO_CONTRAST, ButtonVariant.LUMO_SMALL)
+                addClassName("template-detail-toggle")
+                element.setAttribute("aria-expanded", "false")
+                element.setAttribute("aria-controls", "template-detail-panel")
+            }
+
+        val listToolbar =
+            HorizontalLayout(toggleDetailButton).apply {
+                addClassName("template-list-toolbar")
+                setWidthFull()
+                isPadding = false
+                setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER)
+                setJustifyContentMode(FlexComponent.JustifyContentMode.END)
+            }
+
         val listPanel =
             UiComponents.glassPanel("template-list-panel", "template-list-grid-panel").apply {
                 setWidthFull()
-                add(grid)
+                add(listToolbar, grid)
             }
 
-        val splitLayout =
-            HorizontalLayout(listPanel, UiComponents.glassPanel("template-detail-panel").apply {
+        val detailPanelWrapper =
+            UiComponents.glassPanel("template-detail-panel").apply {
                 add(detailPanel)
-            }).apply {
+            }
+
+        splitLayout =
+            SplitLayout().apply {
                 addClassName("template-list-split")
                 setWidthFull()
-                isPadding = false
-                expand(listPanel)
+                setSplitterPosition(savedSplitterPosition)
+                setPrimaryStyle("min-width", "18rem")
+                setSecondaryStyle("min-width", "16rem")
+                addToPrimary(listPanel)
+                addToSecondary(detailPanelWrapper)
+                addSplitterDragEndListener {
+                    if (detailPanelVisible) {
+                        savedSplitterPosition = splitterPosition
+                    }
+                }
+                element.executeJs(
+                    """
+                    const el = this;
+                    const mq = window.matchMedia('(max-width: 1100px)');
+                    const update = () => {
+                        el.orientation = mq.matches ? 'vertical' : 'horizontal';
+                    };
+                    mq.addEventListener('change', update);
+                    update();
+                    """.trimIndent(),
+                )
             }
+        detailPanelWrapper.element.setAttribute("id", "template-detail-panel")
+        setDetailPanelVisible(false)
 
         val shell = UiComponents.pageShell(wide = true)
         shell.add(
@@ -199,7 +248,30 @@ class TemplateListView(
             ui.ifPresent { ui ->
                 ui.page.history.replaceState(null, Location("admin/templates"), false)
             }
+            setDetailPanelVisible(true)
         }
+    }
+
+    private fun setDetailPanelVisible(visible: Boolean) {
+        detailPanelVisible = visible
+        if (visible) {
+            splitLayout.setSecondaryStyle("min-width", "16rem")
+            splitLayout.setSplitterPosition(savedSplitterPosition)
+            splitLayout.removeClassName("template-detail-hidden")
+        } else {
+            savedSplitterPosition = splitLayout.splitterPosition
+            splitLayout.setSecondaryStyle("min-width", "0")
+            splitLayout.setSplitterPosition(100.0)
+            splitLayout.addClassName("template-detail-hidden")
+        }
+        if (visible) {
+            toggleDetailButton.text = "Hide details"
+            toggleDetailButton.icon = VaadinIcon.ANGLE_RIGHT.create()
+        } else {
+            toggleDetailButton.text = "Show template details"
+            toggleDetailButton.icon = VaadinIcon.ANGLE_LEFT.create()
+        }
+        toggleDetailButton.element.setAttribute("aria-expanded", visible.toString())
     }
 
     private fun showDetailFor(templateId: String) {

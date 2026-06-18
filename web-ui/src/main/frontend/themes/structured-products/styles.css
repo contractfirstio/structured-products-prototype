@@ -614,25 +614,84 @@ vaadin-grid {
 }
 
 .template-list-split {
-    align-items: stretch;
-    gap: 0.75rem;
     min-height: calc(100vh - 8rem);
 }
 
 .template-list-grid-panel {
-    flex: 1 1 0;
+    height: 100%;
     min-width: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.template-list-toolbar {
+    flex-shrink: 0;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--sp-border);
+}
+
+.template-detail-toggle {
+    flex-shrink: 0;
+}
+
+.template-detail-panel-header {
+    flex-shrink: 0;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--sp-border);
+}
+
+.template-detail-panel-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sp-text-muted);
+}
+
+.template-list-split::part(primary),
+.template-list-split::part(secondary) {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.template-list-split::part(splitter) {
+    width: 0.55rem;
+    min-width: 0.55rem;
+    background: var(--sp-bg-surface);
+    border-left: 1px solid var(--sp-border);
+    border-right: 1px solid var(--sp-border);
+    cursor: col-resize;
+}
+
+.template-list-split[orientation="vertical"]::part(splitter) {
+    width: auto;
+    height: 0.55rem;
+    min-height: 0.55rem;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--sp-border);
+    border-bottom: 1px solid var(--sp-border);
+    cursor: row-resize;
+}
+
+.template-list-split.template-detail-hidden::part(splitter),
+.template-list-split.template-detail-hidden::part(secondary) {
+    display: none;
 }
 
 .glass-panel.template-detail-panel {
-    flex: 0 0 22rem;
-    max-width: 26rem;
+    height: 100%;
     min-width: 0;
     margin-bottom: 0.5rem;
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    box-sizing: border-box;
 }
 
 .template-detail-panel-inner {
@@ -811,15 +870,7 @@ vaadin-grid {
 
 @media (max-width: 1100px) {
     .template-list-split {
-        flex-direction: column;
-        min-height: 0;
-    }
-
-    .glass-panel.template-detail-panel {
-        flex: none;
-        max-width: none;
-        width: 100%;
-        max-height: 24rem;
+        min-height: calc(100vh - 7rem);
     }
 }
 
