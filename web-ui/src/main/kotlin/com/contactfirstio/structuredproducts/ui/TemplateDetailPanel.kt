@@ -1,5 +1,6 @@
 package com.contactfirstio.structuredproducts.ui
 
+import com.contactfirstio.structuredproducts.catalog.CatalogFieldDefinition
 import com.contactfirstio.structuredproducts.service.FieldCatalogService
 import com.contactfirstio.structuredproducts.service.ProductTemplateDetail
 import com.vaadin.flow.component.button.Button
@@ -105,7 +106,7 @@ class TemplateDetailPanel(
                 )
             }
 
-        val standardDefaults = buildStandardDefaults(detail)
+        val standardFields = buildStandardFields(detail)
         val commonFields = buildCommonFields(detail)
         val caCaaQuestions = detail.caCaaDeclarationQuestions.filter { it.isNotBlank() }
         val customFields = detail.customFields.filter { it.label.isNotBlank() || it.key.isNotBlank() }
@@ -119,9 +120,9 @@ class TemplateDetailPanel(
 
                 add(
                     buildSection(
-                        summary = "Standard defaults (${standardDefaults.size})",
-                        opened = standardDefaults.isNotEmpty(),
-                        body = standardDefaultsSection(standardDefaults),
+                        summary = "Standard fields (${standardFields.size})",
+                        opened = true,
+                        body = standardFieldsSection(standardFields),
                     ),
                     buildSection(
                         summary = "Common fields (${commonFields.size})",
@@ -154,14 +155,24 @@ class TemplateDetailPanel(
             isOpened = opened
         }
 
-    private fun buildStandardDefaults(detail: ProductTemplateDetail): List<Pair<String, String>> =
-        detail.standardFieldDefaults
-            .filter { it.value.isNotBlank() }
-            .map { (key, value) ->
-                val label = fieldCatalogService.findByKey(key)?.displayName ?: key
-                label to value
+    private fun buildStandardFields(detail: ProductTemplateDetail): List<StandardFieldDisplay> =
+        fieldCatalogService.standardFields()
+            .sortedWith(compareBy<CatalogFieldDefinition> { it.category }.thenBy { it.displayName })
+            .map { field ->
+                val (value, placeholder) = formatStandardFieldValue(field, detail.standardFieldDefaults[field.key])
+                StandardFieldDisplay(field.displayName, value, placeholder)
             }
-            .sortedBy { it.first }
+
+    private fun formatStandardFieldValue(
+        field: CatalogFieldDefinition,
+        rawValue: String?,
+    ): Pair<String, Boolean> =
+        when {
+            field.systemManagedAtProductCreation -> "Set by system" to true
+            !field.defaultedInTemplateCreation -> "Set at product creation" to true
+            !rawValue.isNullOrBlank() -> rawValue to false
+            else -> "Not set" to true
+        }
 
     private fun buildCommonFields(detail: ProductTemplateDetail): List<Pair<String, Boolean>> =
         fieldCatalogService.commonFields()
@@ -171,14 +182,14 @@ class TemplateDetailPanel(
                 field.displayName to (field.key in detail.mandatoryCommonFieldKeys)
             }
 
-    private fun standardDefaultsSection(entries: List<Pair<String, String>>): Div =
+    private fun standardFieldsSection(entries: List<StandardFieldDisplay>): Div =
         Div().apply {
             addClassName("template-detail-section-body")
             if (entries.isEmpty()) {
-                add(emptySectionMessage("No fixed standard field values."))
+                add(emptySectionMessage("No standard fields configured."))
             } else {
-                entries.forEach { (label, value) ->
-                    add(keyValueRow(label, value))
+                entries.forEach { entry ->
+                    add(keyValueRow(entry.label, entry.value, entry.placeholder))
                 }
             }
         }
@@ -278,14 +289,24 @@ class TemplateDetailPanel(
     private fun keyValueRow(
         label: String,
         value: String,
+        placeholder: Boolean = false,
     ): Div =
         Div().apply {
             addClassName("template-detail-kv")
             add(
                 Span(label).apply { addClassName("template-detail-kv-label") },
-                Span(value).apply { addClassName("template-detail-kv-value") },
+                Span(value).apply {
+                    addClassName("template-detail-kv-value")
+                    if (placeholder) addClassName("template-field-placeholder")
+                },
             )
         }
+
+    private data class StandardFieldDisplay(
+        val label: String,
+        val value: String,
+        val placeholder: Boolean,
+    )
 
     private fun emptySectionMessage(message: String): Span =
         Span(message).apply {
