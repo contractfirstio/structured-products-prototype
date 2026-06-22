@@ -54,6 +54,7 @@ tasks.register<Test>("e2eTest") {
     dependsOn("testClasses", "installPlaywrightBrowsers")
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
+    maxParallelForks = 1
     useJUnitPlatform {
         includeTags("e2e")
     }
