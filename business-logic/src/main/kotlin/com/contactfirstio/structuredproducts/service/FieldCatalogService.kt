@@ -1,15 +1,18 @@
 package com.contactfirstio.structuredproducts.service
 
+import com.contactfirstio.structuredproducts.catalog.BooleanValueNormalizer
 import com.contactfirstio.structuredproducts.catalog.CatalogFieldDefinition
 import com.contactfirstio.structuredproducts.catalog.CommonFieldCatalog
 import com.contactfirstio.structuredproducts.catalog.StandardFieldCatalog
 import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.data.document.FieldKind
 import org.springframework.stereotype.Service
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Service
 class FieldCatalogService(
-    private val templateAttachmentService: TemplateAttachmentService,
+    private val attachmentValidator: AttachmentValidator,
 ) {
 
     fun standardFields(): List<CatalogFieldDefinition> = StandardFieldCatalog.fields
@@ -30,6 +33,53 @@ class FieldCatalogService(
         standardFields().firstOrNull { it.key == key }
             ?: commonFields().firstOrNull { it.key == key }
 
+    fun suggestedDefaultsForNewTemplate(): Map<String, String> {
+        val today = LocalDate.now()
+        val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+        val defaults = mutableMapOf<String, String>()
+
+        standardFields()
+            .filter { it.defaultedInTemplateCreation }
+            .forEach { field ->
+                when (field.key) {
+                    "product_status" -> defaults[field.key] = "Draft"
+                    "booking_center" -> defaults[field.key] = "HK/SG"
+                    "market_segment" -> defaults[field.key] = "Institutional"
+                    "itm_settlement_type" -> defaults[field.key] = "Cash"
+                    "effective_from" -> defaults[field.key] = today.format(dateFormatter)
+                    "effective_to" -> defaults[field.key] = today.plusYears(10).format(dateFormatter)
+                    "investment_amount" -> defaults[field.key] = "Notional"
+                    else ->
+                        if (field.dataType == FieldDataType.BOOLEAN && field.enumOptions.contains("No")) {
+                            defaults[field.key] = "No"
+                        }
+                }
+            }
+
+        return defaults
+    }
+
+    fun validateTemplateForm(command: SaveProductTemplateCommand): TemplateFormValidation {
+        val missing = mutableListOf<String>()
+
+        if (command.name.isBlank()) {
+            missing.add("Template name")
+        }
+        if (command.description.isBlank()) {
+            missing.add("Description")
+        }
+
+        standardFields()
+            .filter { it.requiredInTemplateCreation }
+            .forEach { field ->
+                if (command.standardFieldDefaults[field.key].isNullOrBlank()) {
+                    missing.add(field.displayName)
+                }
+            }
+
+        return TemplateFormValidation(missingFieldLabels = missing)
+    }
+
     fun validateDefaultValue(field: CatalogFieldDefinition, rawValue: String) {
         if (rawValue.isBlank()) return
 
@@ -39,17 +89,13 @@ class FieldCatalogService(
                     ?: throw ValidationException("Invalid number for ${field.displayName}")
 
             FieldDataType.BOOLEAN -> {
-                if (field.enumOptions.isNotEmpty()) {
-                    if (rawValue !in field.enumOptions) {
-                        throw ValidationException("Invalid value for ${field.displayName}")
-                    }
-                } else if (rawValue !in setOf("true", "false")) {
-                    throw ValidationException("Invalid boolean for ${field.displayName}")
+                if (!BooleanValueNormalizer.isValid(rawValue, field.enumOptions)) {
+                    throw ValidationException("Invalid value for ${field.displayName}")
                 }
             }
 
             FieldDataType.STRING, FieldDataType.DATE, FieldDataType.DATETIME -> Unit
-            FieldDataType.FILE_LIST -> templateAttachmentService.validateAttachmentIds(rawValue)
+            FieldDataType.FILE_LIST -> attachmentValidator.validateAttachmentIds(rawValue)
             FieldDataType.CHECKBOX_GROUP -> validateCheckboxGroupValue(field, rawValue)
         }
 

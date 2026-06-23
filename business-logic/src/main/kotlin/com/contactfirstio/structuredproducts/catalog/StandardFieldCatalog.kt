@@ -522,7 +522,8 @@ object StandardFieldCatalog {
       excludedFromFixedValuesOnly: Boolean = false,
       systemManagedAtProductCreation: Boolean = false,
   ): CatalogFieldDefinition =
-      CatalogFieldDefinition(
+      CatalogFieldBuilder.field(
+          kind = FieldKind.STANDARD,
           key = key,
           category = category,
           displayName = displayName,
@@ -533,6 +534,5 @@ object StandardFieldCatalog {
           requiredInTemplateCreation = requiredInTemplateCreation,
           excludedFromFixedValuesOnly = excludedFromFixedValuesOnly,
           systemManagedAtProductCreation = systemManagedAtProductCreation,
-          kind = FieldKind.STANDARD,
       )
 }

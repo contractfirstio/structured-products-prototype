@@ -1,22 +1,23 @@
 package com.contactfirstio.structuredproducts.views
 
-import com.contactfirstio.structuredproducts.data.document.FieldDataType
 import com.contactfirstio.structuredproducts.data.document.TemplateCustomFieldDefinition
 import com.contactfirstio.structuredproducts.data.document.TemplateStatus
 import com.contactfirstio.structuredproducts.service.FieldCatalogService
+import com.contactfirstio.structuredproducts.service.ProductTemplateDetail
 import com.contactfirstio.structuredproducts.service.ProductTemplateService
 import com.contactfirstio.structuredproducts.service.SaveProductTemplateCommand
 import com.contactfirstio.structuredproducts.service.ValidationException
-import com.contactfirstio.structuredproducts.ui.CustomFieldsPanel
 import com.contactfirstio.structuredproducts.ui.CaCaaDeclarationQuestionsPanel
 import com.contactfirstio.structuredproducts.ui.CommonFieldsPanel
+import com.contactfirstio.structuredproducts.ui.ConfirmDialogs
+import com.contactfirstio.structuredproducts.ui.CustomFieldsPanel
+import com.contactfirstio.structuredproducts.ui.DisplayFormatters
 import com.contactfirstio.structuredproducts.ui.StandardFieldsPanel
 import com.contactfirstio.structuredproducts.ui.TemplateDefaultFieldFactory
 import com.contactfirstio.structuredproducts.ui.UiComponents
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.button.ButtonVariant
 import com.vaadin.flow.component.combobox.ComboBox
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.notification.NotificationVariant
 import com.vaadin.flow.component.orderedlayout.FlexComponent
@@ -30,8 +31,6 @@ import com.vaadin.flow.router.BeforeEnterEvent
 import com.vaadin.flow.router.BeforeEnterObserver
 import com.vaadin.flow.router.QueryParameters
 import com.vaadin.flow.router.Route
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @Route(value = "admin/templates/edit/:templateId?", layout = MainLayout::class)
 class TemplateEditorView(
@@ -62,7 +61,7 @@ class TemplateEditorView(
             placeholder = "Status"
             element.setAttribute("aria-label", "Status")
             setItems(TemplateStatus.entries)
-            setItemLabelGenerator { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+            setItemLabelGenerator { DisplayFormatters.enumLabel(it) }
             value = TemplateStatus.DRAFT
             addClassName("template-metadata-status")
         }
@@ -83,11 +82,13 @@ class TemplateEditorView(
     private lateinit var caCaaTabContent: VerticalLayout
     private lateinit var tabs: Tabs
     private lateinit var standardTab: Tab
+    private lateinit var deleteButton: Button
 
     init {
         addClassName("template-editor-view")
         setWidthFull()
         isPadding = false
+        buildUi()
     }
 
     override fun beforeEnter(event: BeforeEnterEvent) {
@@ -118,15 +119,13 @@ class TemplateEditorView(
             caCaaDeclarationQuestions.addAll(detail.caCaaDeclarationQuestions)
             customFields.addAll(detail.customFields)
         } else {
-            applySuggestedDefaults()
+            standardDefaults.putAll(fieldCatalogService.suggestedDefaultsForNewTemplate())
         }
 
-        buildUi(detail)
+        populateForm(detail)
     }
 
-    private fun buildUi(detail: com.contactfirstio.structuredproducts.service.ProductTemplateDetail?) {
-        removeAll()
-
+    private fun buildUi() {
         standardFieldsPanel =
             StandardFieldsPanel(
                 fieldCatalogService,
@@ -154,7 +153,7 @@ class TemplateEditorView(
                 setWidthFull()
             }
         caCaaTabContent =
-            VerticalLayout(caCaaPanel).apply {
+            VerticalLayout(caCaaPanel.component).apply {
                 isPadding = false
                 setWidthFull()
             }
@@ -188,11 +187,10 @@ class TemplateEditorView(
             Button("Cancel") {
                 ui.ifPresent { it.navigate(TemplateListView::class.java) }
             }
-        val deleteButton =
+        deleteButton =
             Button("Delete", com.vaadin.flow.component.icon.VaadinIcon.TRASH.create()) {
                 confirmDelete()
             }.apply {
-                isVisible = templateId != null
                 addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY)
             }
 
@@ -227,6 +225,12 @@ class TemplateEditorView(
             fieldsPanel,
         )
         add(shell)
+    }
+
+    private fun populateForm(detail: ProductTemplateDetail?) {
+        nameField.isInvalid = false
+        descriptionField.isInvalid = false
+        standardFieldsPanel.setShowValidationErrors(false)
 
         if (detail != null) {
             nameField.value = detail.name
@@ -237,69 +241,25 @@ class TemplateEditorView(
             descriptionField.clear()
             statusField.value = TemplateStatus.DRAFT
         }
-    }
 
-    private fun applySuggestedDefaults() {
-        val today = LocalDate.now()
-        val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+        deleteButton.isVisible = templateId != null
+        tabs.selectedTab = standardTab
+        standardTabContent.isVisible = true
+        commonTabContent.isVisible = false
+        customTabContent.isVisible = false
+        caCaaTabContent.isVisible = false
 
-        fieldCatalogService.standardFields()
-            .filter { it.defaultedInTemplateCreation }
-            .forEach { field ->
-                when (field.key) {
-                    "product_status" -> standardDefaults[field.key] = "Draft"
-                    "booking_center" -> standardDefaults[field.key] = "HK/SG"
-                    "market_segment" -> standardDefaults[field.key] = "Institutional"
-                    "itm_settlement_type" -> standardDefaults[field.key] = "Cash"
-                    "effective_from" -> standardDefaults[field.key] = today.format(dateFormatter)
-                    "effective_to" -> standardDefaults[field.key] = today.plusYears(10).format(dateFormatter)
-                    "investment_amount" -> standardDefaults[field.key] = "Notional"
-                    else ->
-                        if (field.dataType == FieldDataType.BOOLEAN && field.enumOptions.contains("No")) {
-                            standardDefaults[field.key] = "No"
-                        }
-                }
-            }
+        standardFieldsPanel.setTemplateId(templateId)
+        standardFieldsPanel.refresh()
+        commonFieldsPanel.syncFromIncludedKeys()
+        customFieldsPanel.refresh()
+        caCaaPanel.refresh()
     }
 
     private fun save() {
         standardFieldsPanel.setShowValidationErrors(false)
         nameField.isInvalid = false
         descriptionField.isInvalid = false
-
-        val missingFields = mutableListOf<String>()
-
-        if (nameField.isEmpty) {
-            nameField.isInvalid = true
-            nameField.errorMessage = "Required"
-            missingFields.add("Template name")
-        }
-        if (descriptionField.isEmpty) {
-            descriptionField.isInvalid = true
-            descriptionField.errorMessage = "Required"
-            missingFields.add("Description")
-        }
-
-        fieldCatalogService.standardFields()
-            .filter { it.requiredInTemplateCreation }
-            .forEach { field ->
-                if (standardDefaults[field.key].isNullOrBlank()) {
-                    missingFields.add(field.displayName)
-                }
-            }
-
-        if (missingFields.isNotEmpty()) {
-            if (missingFields.any { it !in setOf("Template name", "Description") }) {
-                standardFieldsPanel.setShowValidationErrors(true)
-                tabs.selectedTab = standardTab
-            }
-            Notification.show(
-                "Required: ${missingFields.joinToString(", ")}",
-                5000,
-                Notification.Position.MIDDLE,
-            ).addThemeVariants(NotificationVariant.LUMO_ERROR)
-            return
-        }
 
         val command =
             SaveProductTemplateCommand(
@@ -312,6 +272,28 @@ class TemplateEditorView(
                 caCaaDeclarationQuestions = caCaaDeclarationQuestions.toList(),
                 customFields = customFields.toList(),
             )
+
+        val validation = fieldCatalogService.validateTemplateForm(command)
+        if (!validation.isValid) {
+            if (validation.missingFieldLabels.contains("Template name")) {
+                nameField.isInvalid = true
+                nameField.errorMessage = "Required"
+            }
+            if (validation.missingFieldLabels.contains("Description")) {
+                descriptionField.isInvalid = true
+                descriptionField.errorMessage = "Required"
+            }
+            if (validation.hasStandardFieldErrors) {
+                standardFieldsPanel.setShowValidationErrors(true)
+                tabs.selectedTab = standardTab
+            }
+            Notification.show(
+                "Required: ${validation.missingFieldLabels.joinToString(", ")}",
+                5000,
+                Notification.Position.MIDDLE,
+            ).addThemeVariants(NotificationVariant.LUMO_ERROR)
+            return
+        }
 
         try {
             val isNewTemplate = templateId == null
@@ -347,22 +329,15 @@ class TemplateEditorView(
 
     private fun confirmDelete() {
         val id = templateId ?: return
-        ConfirmDialog().apply {
-            setHeader("Delete template?")
-            setText("Delete \"${nameField.value}\"? This cannot be undone.")
-            setCancelable(true)
-            setConfirmText("Delete")
-            setConfirmButtonTheme("error primary")
-            addConfirmListener {
-                try {
-                    productTemplateService.delete(id)
-                    Notification.show("Template deleted", 3000, Notification.Position.BOTTOM_START)
-                    ui.ifPresent { it.navigate(TemplateListView::class.java) }
-                } catch (ex: ValidationException) {
-                    Notification.show(ex.message ?: "Delete failed", 5000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR)
-                }
+        ConfirmDialogs.confirmDelete(nameField.value) {
+            try {
+                productTemplateService.delete(id)
+                Notification.show("Template deleted", 3000, Notification.Position.BOTTOM_START)
+                ui.ifPresent { it.navigate(TemplateListView::class.java) }
+            } catch (ex: ValidationException) {
+                Notification.show(ex.message ?: "Delete failed", 5000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR)
             }
-        }.open()
+        }
     }
 }

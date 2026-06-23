@@ -60,6 +60,18 @@ class CustomFieldsPanel(
 
     fun fieldCount(): Int = customFields.count { it.label.isNotBlank() }
 
+    fun refresh() {
+        if (customFields.isEmpty()) {
+            customFields.add(
+                TemplateCustomFieldDefinition(
+                    label = "",
+                    dataType = TemplateCustomFieldType.STRING,
+                ),
+            )
+        }
+        rebuildFields()
+    }
+
     private fun addField() {
         val index = customFields.size
         customFields.add(

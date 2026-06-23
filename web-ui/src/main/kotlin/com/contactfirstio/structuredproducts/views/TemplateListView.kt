@@ -8,7 +8,8 @@ import com.contactfirstio.structuredproducts.ui.TemplateDetailPanel
 import com.contactfirstio.structuredproducts.ui.UiComponents
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.button.ButtonVariant
-import com.vaadin.flow.component.confirmdialog.ConfirmDialog
+import com.contactfirstio.structuredproducts.ui.ConfirmDialogs
+import com.contactfirstio.structuredproducts.ui.DisplayFormatters
 import com.vaadin.flow.component.grid.AbstractGridSingleSelectionModel
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.icon.VaadinIcon
@@ -24,8 +25,6 @@ import com.vaadin.flow.router.Location
 import com.vaadin.flow.router.Route
 import com.vaadin.flow.router.RouteParam
 import com.vaadin.flow.router.RouteParameters
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Route(value = "admin/templates", layout = MainLayout::class)
 class TemplateListView(
@@ -85,17 +84,13 @@ class TemplateListView(
                 .setWidth("4.5rem")
                 .setAutoWidth(false)
 
-            addColumn { it.status.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+            addColumn { DisplayFormatters.enumLabel(it.status) }
                 .setHeader("Status")
                 .setFlexGrow(0)
                 .setWidth("5.5rem")
                 .setAutoWidth(false)
 
-            addColumn {
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                    .withZone(ZoneId.systemDefault())
-                    .format(it.updatedAt)
-            }
+            addColumn { DisplayFormatters.formatInstant(it.updatedAt) }
                 .setHeader("Updated")
                 .setFlexGrow(0)
                 .setWidth("8.5rem")
@@ -297,23 +292,16 @@ class TemplateListView(
     }
 
     private fun confirmDelete(summary: ProductTemplateSummary) {
-        ConfirmDialog().apply {
-            setHeader("Delete template?")
-            setText("Delete \"${summary.name}\"? This cannot be undone.")
-            setCancelable(true)
-            setConfirmText("Delete")
-            setConfirmButtonTheme("error primary")
-            addConfirmListener {
-                try {
-                    productTemplateService.delete(summary.id)
-                    Notification.show("Deleted template: ${summary.name}", 3000, Notification.Position.BOTTOM_START)
-                    refreshGrid()
-                } catch (ex: ValidationException) {
-                    Notification.show(ex.message ?: "Delete failed", 5000, Notification.Position.MIDDLE)
-                        .addThemeVariants(NotificationVariant.LUMO_ERROR)
-                }
+        ConfirmDialogs.confirmDelete(summary.name) {
+            try {
+                productTemplateService.delete(summary.id)
+                Notification.show("Deleted template: ${summary.name}", 3000, Notification.Position.BOTTOM_START)
+                refreshGrid()
+            } catch (ex: ValidationException) {
+                Notification.show(ex.message ?: "Delete failed", 5000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR)
             }
-        }.open()
+        }
     }
 
     companion object {

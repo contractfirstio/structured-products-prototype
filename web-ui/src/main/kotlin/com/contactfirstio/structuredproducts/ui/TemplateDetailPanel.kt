@@ -14,8 +14,7 @@ import com.vaadin.flow.component.icon.VaadinIcon
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.contactfirstio.structuredproducts.ui.DisplayFormatters
 
 class TemplateDetailPanel(
     private val fieldCatalogService: FieldCatalogService,
@@ -52,11 +51,8 @@ class TemplateDetailPanel(
     fun showDetail(detail: ProductTemplateDetail) {
         contentArea.removeAll()
 
-        val statusLabel = detail.status.name.lowercase().replaceFirstChar { it.uppercase() }
-        val updatedLabel =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                .withZone(ZoneId.systemDefault())
-                .format(detail.updatedAt)
+        val statusLabel = DisplayFormatters.enumLabel(detail.status)
+        val updatedLabel = DisplayFormatters.formatInstant(detail.updatedAt)
 
         val nameHeading = H3(detail.name).apply { addClassName("template-detail-name") }
         val statusBadge =
@@ -247,9 +243,7 @@ class TemplateDetailPanel(
                 add(emptySectionMessage("No custom fields."))
             } else {
                 fields.forEach { field ->
-                    val typeLabel =
-                        field.dataType.name.lowercase().replace('_', ' ')
-                            .replaceFirstChar { it.uppercase() }
+                    val typeLabel = DisplayFormatters.snakeCaseLabel(field.dataType.name)
                     add(
                         Div().apply {
                             addClassName("template-detail-custom-field")

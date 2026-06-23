@@ -10,7 +10,7 @@ import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
-import com.vaadin.flow.component.textfield.TextField
+import com.contactfirstio.structuredproducts.ui.DisplayFormatters
 import com.vaadin.flow.data.value.ValueChangeMode
 
 class CommonFieldsPanel(
@@ -41,19 +41,8 @@ class CommonFieldsPanel(
                 )
             }
             .toMutableList()
-    private val searchField =
-        TextField().apply {
-            placeholder = "Search fields..."
-            prefixComponent = com.vaadin.flow.component.icon.VaadinIcon.SEARCH.create()
-            isClearButtonVisible = true
-            valueChangeMode = ValueChangeMode.EAGER
-        }
-    private val categoryFilter =
-        ComboBox<String>().apply {
-            placeholder = "Category"
-            setItems(listOf("All") + fieldCatalogService.commonCategories())
-            value = "All"
-        }
+    private val searchField = FieldGridFilters.createSearchField(ValueChangeMode.EAGER)
+    private val categoryFilter = FieldGridFilters.createCategoryFilter(fieldCatalogService.commonCategories())
     private val showFilter =
         ComboBox<String>().apply {
             placeholder = "Show"
@@ -86,7 +75,7 @@ class CommonFieldsPanel(
 
             addColumn { it.field.displayName }.setHeader("Field").setFlexGrow(2)
             addColumn { it.field.category }.setHeader("Category").setFlexGrow(1)
-            addColumn { it.field.dataType.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+            addColumn { DisplayFormatters.snakeCaseLabel(it.field.dataType.name) }
                 .setHeader("Type")
                 .setFlexGrow(0)
                 .setWidth("5.5rem")
@@ -161,18 +150,15 @@ class CommonFieldsPanel(
 
         val filtered =
             rows.filter { row ->
-                val matchesCategory = category == "All" || row.field.category == category
+                val matchesFilters =
+                    FieldGridFilters.matchesCatalogField(row.field, query, category)
                 val matchesShow =
                     when (show) {
                         "Included only" -> row.included
                         "Not included" -> !row.included
                         else -> true
                     }
-                val matchesSearch =
-                    query.isEmpty() ||
-                        row.field.displayName.lowercase().contains(query) ||
-                        row.field.category.lowercase().contains(query)
-                matchesCategory && matchesShow && matchesSearch
+                matchesFilters && matchesShow
             }
 
         grid.setItems(filtered.sortedWith(compareByDescending<CommonFieldRow> { it.included }.thenBy { it.field.displayName }))

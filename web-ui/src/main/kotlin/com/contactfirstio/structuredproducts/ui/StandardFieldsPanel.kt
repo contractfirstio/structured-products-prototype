@@ -10,14 +10,14 @@ import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.orderedlayout.FlexComponent
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
 import com.vaadin.flow.component.orderedlayout.VerticalLayout
-import com.vaadin.flow.component.textfield.TextField
+import com.contactfirstio.structuredproducts.ui.DisplayFormatters
 import com.vaadin.flow.data.value.ValueChangeMode
 
 class StandardFieldsPanel(
     private val fieldCatalogService: FieldCatalogService,
     private val templateDefaultFieldFactory: TemplateDefaultFieldFactory,
     private val defaults: MutableMap<String, String>,
-    private val templateId: String? = null,
+    private var templateId: String? = null,
 ) : VerticalLayout() {
 
     private var showValidationErrors = false
@@ -29,19 +29,8 @@ class StandardFieldsPanel(
         Checkbox("Fixed values only").apply {
             value = true
         }
-    private val searchField =
-        TextField().apply {
-            placeholder = "Search fields..."
-            prefixComponent = com.vaadin.flow.component.icon.VaadinIcon.SEARCH.create()
-            isClearButtonVisible = true
-            valueChangeMode = ValueChangeMode.LAZY
-        }
-    private val categoryFilter =
-        ComboBox<String>().apply {
-            placeholder = "Category"
-            setItems(listOf("All") + categoryOrder)
-            value = "All"
-        }
+    private val searchField = FieldGridFilters.createSearchField(ValueChangeMode.LAZY)
+    private val categoryFilter = FieldGridFilters.createCategoryFilter(categoryOrder)
     private val hint =
         Span().apply {
             addClassName("template-panel-hint")
@@ -70,7 +59,7 @@ class StandardFieldsPanel(
             addColumn(CatalogFieldDefinition::category)
                 .setHeader("Category")
                 .setFlexGrow(1)
-            addColumn { it.dataType.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+            addColumn { DisplayFormatters.snakeCaseLabel(it.dataType.name) }
                 .setHeader("Type")
                 .setFlexGrow(0)
                 .setWidth("5.5rem")
@@ -127,6 +116,15 @@ class StandardFieldsPanel(
         applyFilters()
     }
 
+    fun setTemplateId(id: String?) {
+        templateId = id
+        applyFilters()
+    }
+
+    fun refresh() {
+        applyFilters()
+    }
+
     private fun updateDefault(key: String, newValue: String?) {
         if (newValue.isNullOrBlank()) {
             defaults.remove(key)
@@ -146,16 +144,12 @@ class StandardFieldsPanel(
 
         val filtered =
             allFields.filter { field ->
-                val matchesCategory = category == "All" || field.category == category
+                val matchesFilters =
+                    FieldGridFilters.matchesCatalogField(field, query, category)
                 val matchesFixedValues =
                     !fixedValuesOnly ||
                         (field.defaultedInTemplateCreation && !field.excludedFromFixedValuesOnly)
-                val matchesSearch =
-                    query.isEmpty() ||
-                        field.displayName.lowercase().contains(query) ||
-                        field.key.lowercase().contains(query) ||
-                        field.category.lowercase().contains(query)
-                matchesCategory && matchesFixedValues && matchesSearch
+                matchesFilters && matchesFixedValues
             }
 
         content.removeAll()

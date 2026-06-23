@@ -8,7 +8,7 @@ import java.time.Instant
 @Service
 class TemplateAttachmentService(
     private val templateAttachmentRepository: TemplateAttachmentRepository,
-) {
+) : AttachmentValidator {
 
     fun store(
         templateId: String?,
@@ -85,7 +85,7 @@ class TemplateAttachmentService(
     fun serializeAttachmentIds(ids: Collection<String>): String? =
         ids.map { it.trim() }.filter { it.isNotEmpty() }.distinct().joinToString(",").ifBlank { null }
 
-    fun validateAttachmentIds(rawValue: String) {
+    override fun validateAttachmentIds(rawValue: String) {
         val ids = parseAttachmentIds(rawValue)
         if (ids.isEmpty()) return
 
