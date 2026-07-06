@@ -4,6 +4,7 @@ spring-boot = "4.0.6"
 spring-dependency-management = "1.1.7"
 vaadin = "25.1.7"
 playwright = "1.50.0"
+cucumber = "7.21.1"
 testcontainers = "1.20.6"
 
 [libraries]
@@ -16,6 +17,10 @@ vaadin-spring-boot-starter = { module = "com.vaadin:vaadin-spring-boot-starter" 
 vaadin-dev = { module = "com.vaadin:vaadin-dev" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 playwright = { module = "com.microsoft.playwright:playwright", version.ref = "playwright" }
+cucumber-java = { module = "io.cucumber:cucumber-java", version.ref = "cucumber" }
+cucumber-spring = { module = "io.cucumber:cucumber-spring", version.ref = "cucumber" }
+cucumber-junit-platform-engine = { module = "io.cucumber:cucumber-junit-platform-engine", version.ref = "cucumber" }
+junit-platform-suite = { module = "org.junit.platform:junit-platform-suite" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-mongodb = { module = "org.testcontainers:mongodb", version.ref = "testcontainers" }
 

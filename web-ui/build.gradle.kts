@@ -23,6 +23,10 @@ dependencies {
     testImplementation(libs.spring.boot.starter.data.mongodb)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.playwright)
+    testImplementation(libs.cucumber.java)
+    testImplementation(libs.cucumber.spring)
+    testImplementation(libs.cucumber.junit.platform.engine)
+    testImplementation(libs.junit.platform.suite)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.mongodb)
     testImplementation(libs.spring.boot.testcontainers)
@@ -37,6 +41,10 @@ tasks.named<Test>("test") {
     useJUnitPlatform {
         excludeTags("e2e")
     }
+    filter {
+        excludeTestsMatching("*CucumberE2ETestSuite*")
+        isFailOnNoMatchingTests = false
+    }
 }
 
 tasks.register<JavaExec>("installPlaywrightBrowsers") {
@@ -49,14 +57,18 @@ tasks.register<JavaExec>("installPlaywrightBrowsers") {
 }
 
 tasks.register<Test>("e2eTest") {
-    description = "Runs browser end-to-end tests"
+    description = "Runs browser end-to-end tests (Cucumber/Gherkin)"
     group = "verification"
     dependsOn("testClasses", "installPlaywrightBrowsers")
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
     maxParallelForks = 1
+    systemProperty("cucumber.junit-platform.naming-strategy", "long")
     useJUnitPlatform {
         includeTags("e2e")
+    }
+    filter {
+        includeTestsMatching("*CucumberE2ETestSuite*")
     }
     outputs.upToDateWhen { false }
     outputs.cacheIf { false }
