@@ -53,6 +53,34 @@ object TemplateE2EFlows {
         ).hasCount(0)
     }
 
+    fun openEditorForTemplate(page: Page, templateName: String) {
+        val detailEdit =
+            page.locator("#template-detail-panel")
+                .filter(Locator.FilterOptions().setHasText(templateName))
+                .getByRole(AriaRole.BUTTON, Locator.GetByRoleOptions().setName("Edit").setExact(true))
+
+        if (detailEdit.count() > 0) {
+            detailEdit.click()
+        } else {
+            val showDetails =
+                page.getByRole(AriaRole.BUTTON, Page.GetByRoleOptions().setName("Show template details"))
+            if (showDetails.count() > 0) {
+                showDetails.click()
+            }
+            page.locator("vaadin-grid.template-list-grid")
+                .getByText(templateName, Locator.GetByTextOptions().setExact(true))
+                .click()
+            page.locator("#template-detail-panel")
+                .filter(Locator.FilterOptions().setHasText(templateName))
+                .getByRole(AriaRole.BUTTON, Locator.GetByRoleOptions().setName("Edit").setExact(true))
+                .click()
+        }
+
+        page.getByLabel("Template name").locator("input").waitFor()
+        page.locator(".template-editor-view").waitFor()
+        assertThat(page.getByLabel("Template name").locator("input")).hasValue(templateName)
+    }
+
     fun fillRequiredStandardFields(page: Page) {
         VaadinFormHelpers.selectFormItemComboBoxOption(page, "Risk Profile *", "Protection")
         VaadinFormHelpers.fillFormItemTextField(page, "PIP ID *", "PIP-E2E-001")

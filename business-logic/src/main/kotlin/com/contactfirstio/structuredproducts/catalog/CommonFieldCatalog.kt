@@ -562,6 +562,15 @@ object CommonFieldCatalog {
                   requirement = FieldRequirement.OPTIONAL, enumOptions = listOf("Monthly", "Quarterly", "Semi-Annually", "Annually"),
               ),
           ),
+          CommonFieldGroup.fields(
+              CommonFieldGroupSpec(
+                  baseKey = "badger",
+                  displayName = "Badger",
+                  category = CATEGORY_MARKET_AND_TECHNICAL,
+                  dataType = FieldDataType.STRING,
+                  requirement = FieldRequirement.OPTIONAL,
+              ),
+          ),
       ).flatten()
 
   val categories: List<String> =

@@ -35,6 +35,13 @@ class PlaywrightScenarioContext @Autowired constructor(
         page.navigate("${baseUrl()}$path")
         page.waitForLoadState(LoadState.DOMCONTENTLOADED)
         page.locator("vaadin-app-layout").waitFor()
+        page.evaluate(
+            """
+            () => {
+              document.querySelectorAll('copilot-main').forEach((el) => el.remove());
+            }
+            """.trimIndent(),
+        )
     }
 
     fun newTemplateName(prefix: String): String {
@@ -70,5 +77,14 @@ class PlaywrightScenarioContext @Autowired constructor(
             )
         page = browser!!.newPage()
         page.setDefaultTimeout(60_000.0)
+        page.addInitScript(
+            """
+            (() => {
+              const removeCopilot = () => document.querySelectorAll('copilot-main').forEach((el) => el.remove());
+              removeCopilot();
+              new MutationObserver(removeCopilot).observe(document.documentElement, { childList: true, subtree: true });
+            })();
+            """.trimIndent(),
+        )
     }
 }

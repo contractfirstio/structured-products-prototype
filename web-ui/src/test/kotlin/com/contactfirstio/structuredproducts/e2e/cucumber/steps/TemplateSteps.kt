@@ -3,7 +3,6 @@ package com.contactfirstio.structuredproducts.e2e.cucumber.steps
 import com.contactfirstio.structuredproducts.e2e.TemplateE2EFlows
 import com.contactfirstio.structuredproducts.e2e.VaadinFormHelpers
 import com.contactfirstio.structuredproducts.e2e.cucumber.PlaywrightScenarioContext
-import com.microsoft.playwright.Locator
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
 import com.microsoft.playwright.options.AriaRole
@@ -37,14 +36,7 @@ class TemplateSteps(
     fun openEditorForCurrentTemplate() {
         val page = context.page
         val templateName = context.currentTemplateName
-        page.locator("#template-detail-panel")
-            .filter(Locator.FilterOptions().setHasText(templateName))
-            .getByRole(AriaRole.BUTTON, Locator.GetByRoleOptions().setName("Edit").setExact(true))
-            .click()
-        page.getByLabel("Template name").locator("input").waitFor()
-        page.locator(".template-editor-view").waitFor()
-
-        assertThat(page.getByLabel("Template name").locator("input")).hasValue(templateName)
+        TemplateE2EFlows.openEditorForTemplate(page, templateName)
         assertThat(page.getByLabel("Description").locator("input")).hasValue(context.currentDescription)
     }
 

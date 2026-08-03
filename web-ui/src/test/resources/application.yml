@@ -2,3 +2,8 @@ spring:
   data:
     mongodb:
       database: structured-products-e2e
+
+vaadin:
+  # Copilot overlay intercepts Playwright clicks in e2e runs.
+  copilot:
+    enable: false

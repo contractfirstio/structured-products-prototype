@@ -64,6 +64,7 @@ tasks.register<Test>("e2eTest") {
     classpath = sourceSets["test"].runtimeClasspath
     maxParallelForks = 1
     systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    systemProperty("vaadin.copilot.enable", "false")
     useJUnitPlatform {
         includeTags("e2e")
     }
